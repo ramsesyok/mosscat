@@ -27,6 +27,12 @@ go.work.sum
 # env file
 .env
 
+# generated admin password
+admin.initial.password
+
 # Editor/IDE
 # .idea/
-# .vscode/
+.vscode/
+.venv
+mosscat.db
+mosscat-test

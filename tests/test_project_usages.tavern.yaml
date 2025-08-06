@@ -1,0 +1,399 @@
+test_name: "project usage lifecycle"
+
+stages:
+  - name: create project
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        projectCode: usage-prj
+        name: usage project
+    response:
+      status_code: 201
+      strict: false
+      json:
+        id: !anystr
+        projectCode: usage-prj
+        name: usage project
+        createdAt: !anystr
+        updatedAt: !anystr
+      save:
+        json:
+          project_id: id
+
+  - name: create oss
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        name: usage-oss
+    response:
+      status_code: 201
+      strict: false
+      json:
+        id: !anystr
+        name: usage-oss
+        deprecated: false
+        createdAt: !anystr
+        updatedAt: !anystr
+      save:
+        json:
+          oss_id: id
+
+  - name: create version
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss/{oss_id}/versions"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        version: "9.9.9"
+    response:
+      status_code: 201
+      strict: false
+      json:
+        id: !anystr
+        ossId: "{oss_id}"
+        version: "9.9.9"
+        modified: false
+        reviewStatus: draft
+        scopeStatus: IN_SCOPE
+        createdAt: !anystr
+        updatedAt: !anystr
+      save:
+        json:
+          version_id: id
+
+  - name: create usage
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}/usages"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        ossId: "{oss_id}"
+        ossVersionId: "{version_id}"
+        usageRole: RUNTIME_REQUIRED
+    response:
+      status_code: 201
+      strict: false
+      json:
+        id: !anystr
+        projectId: "{project_id}"
+        ossId: "{oss_id}"
+        ossVersionId: "{version_id}"
+        usageRole: RUNTIME_REQUIRED
+        scopeStatus: REVIEW_NEEDED
+        directDependency: true
+        addedAt: !anystr
+      save:
+        json:
+          usage_id: id
+
+  - name: list usages
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}/usages"
+      method: GET
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 200
+      strict: false
+      json:
+        page: 1
+        size: 50
+        total: 1
+        items:
+          - id: "{usage_id}"
+            projectId: "{project_id}"
+            ossId: "{oss_id}"
+            ossVersionId: "{version_id}"
+            usageRole: RUNTIME_REQUIRED
+            scopeStatus: REVIEW_NEEDED
+            directDependency: true
+            addedAt: !anystr
+
+  - name: patch usage
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}/usages/{usage_id}"
+      method: PATCH
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        ossVersionId: "{version_id}"
+        usageRole: RUNTIME_REQUIRED
+        scopeStatus: REVIEW_NEEDED
+        directDependency: false
+    response:
+      status_code: 200
+      strict: false
+      json: {}
+
+  - name: verify patched usage
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}/usages"
+      method: GET
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 200
+      strict: false
+      json:
+        total: 1
+        items:
+          - id: "{usage_id}"
+            directDependency: false
+            usageRole: RUNTIME_REQUIRED
+            scopeStatus: REVIEW_NEEDED
+            addedAt: !anystr
+
+  - name: patch usage scope
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}/usages/{usage_id}/scope"
+      method: PATCH
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        scopeStatus: IN_SCOPE
+        reasonNote: included
+    response:
+      status_code: 200
+      strict: false
+      json: {}
+
+  - name: delete usage
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}/usages/{usage_id}"
+      method: DELETE
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 204
+
+  - name: list usages after delete
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}/usages"
+      method: GET
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 200
+      strict: false
+      json:
+        page: 1
+        size: 50
+        total: 0
+        items: []
+
+  - name: delete project
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}"
+      method: DELETE
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 204
+
+---
+
+test_name: "project usage unauthorized"
+
+stages:
+  - name: list usages without token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/00000000-0000-0000-0000-000000000000/usages"
+      method: GET
+    response:
+      status_code: 401
+
+  - name: create usage without token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/00000000-0000-0000-0000-000000000000/usages"
+      method: POST
+      json:
+        ossId: 00000000-0000-0000-0000-000000000000
+        ossVersionId: 00000000-0000-0000-0000-000000000000
+        usageRole: RUNTIME_REQUIRED
+    response:
+      status_code: 401
+
+  - name: patch usage without token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/00000000-0000-0000-0000-000000000000/usages/00000000-0000-0000-0000-000000000000"
+      method: PATCH
+      json:
+        directDependency: false
+    response:
+      status_code: 401
+
+  - name: patch usage scope without token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/00000000-0000-0000-0000-000000000000/usages/00000000-0000-0000-0000-000000000000/scope"
+      method: PATCH
+      json:
+        scopeStatus: OUT_SCOPE
+    response:
+      status_code: 401
+
+  - name: delete usage without token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/00000000-0000-0000-0000-000000000000/usages/00000000-0000-0000-0000-000000000000"
+      method: DELETE
+    response:
+      status_code: 401
+
+---
+
+test_name: "project usage forbidden for viewer"
+
+stages:
+  - name: create viewer user
+    request:
+      url: "{tavern.env_vars.BASE_URL}/users"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        username: usage_viewer
+        roles: [VIEWER]
+        password: "$2a$10$Om2EuihRx7HkQQH6kGR92e6JrjZKoggTONqqITt4pmi84LmQg0oDO"
+    response:
+      status_code: 201
+
+  - name: login viewer
+    request:
+      url: "{tavern.env_vars.BASE_URL}/auth/login"
+      method: POST
+      json:
+        username: usage_viewer
+        password: viewerpass
+    response:
+      status_code: 200
+      save:
+        json:
+          viewer_token: accessToken
+
+  - name: create project
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        projectCode: usage-prj-view
+        name: usage project view
+    response:
+      status_code: 201
+      save:
+        json:
+          project_id: id
+
+  - name: create oss
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        name: usage-oss-view
+    response:
+      status_code: 201
+      save:
+        json:
+          oss_id: id
+
+  - name: create version
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss/{oss_id}/versions"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        version: "0.0.2"
+    response:
+      status_code: 201
+      save:
+        json:
+          version_id: id
+
+  - name: create usage with viewer token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}/usages"
+      method: POST
+      headers:
+        Authorization: "Bearer {viewer_token}"
+      json:
+        ossId: "{oss_id}"
+        ossVersionId: "{version_id}"
+        usageRole: RUNTIME_REQUIRED
+    response:
+      status_code: 403
+
+  - name: create usage with admin token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}/usages"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        ossId: "{oss_id}"
+        ossVersionId: "{version_id}"
+        usageRole: RUNTIME_REQUIRED
+    response:
+      status_code: 201
+      save:
+        json:
+          usage_id: id
+
+  - name: patch usage with viewer token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}/usages/{usage_id}"
+      method: PATCH
+      headers:
+        Authorization: "Bearer {viewer_token}"
+      json:
+        directDependency: false
+    response:
+      status_code: 403
+
+  - name: patch usage scope with viewer token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}/usages/{usage_id}/scope"
+      method: PATCH
+      headers:
+        Authorization: "Bearer {viewer_token}"
+      json:
+        scopeStatus: OUT_SCOPE
+    response:
+      status_code: 403
+
+  - name: delete usage with viewer token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}/usages/{usage_id}"
+      method: DELETE
+      headers:
+        Authorization: "Bearer {viewer_token}"
+    response:
+      status_code: 403
+
+  - name: cleanup usage
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}/usages/{usage_id}"
+      method: DELETE
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 204
+
+  - name: cleanup project
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}"
+      method: DELETE
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 204

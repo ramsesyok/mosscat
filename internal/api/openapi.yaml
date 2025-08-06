@@ -1,0 +1,1701 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+openapi: 3.0.3
+info:
+  title: 社内OSSカタログ / 納品用 OSS 管理 API
+  version: 1.0.0-draft2
+  description: |
+    社内で利用・納品対象となる OSS を一元管理し、プロジェクト毎の利用状況と納品用一覧（SPDX / CSV 等エクスポート）を生成するための API 初稿 (Phase 1)。
+
+    **本稿の位置づけ**
+    - Phase 1 対象: OSSコンポーネント/バージョン CRUD, タグ, プロジェクト, プロジェクト利用 (Usage), スコープ判定, ポリシー参照, 監査ログ最小, エクスポート(プレースホルダ)
+    - 未実装(将来): 脆弱性, SBOM Import, NOTICE 生成, ライセンス全文管理, **JWT リフレッシュ**, 監査詳細検索高度化
+
+    **表記**
+    - ID は原則 UUID v4 文字列
+    - 日本語説明は実装後英語化検討
+
+servers:
+  - url: https://api.example.local/api/v1
+    description: 本番 (社内)
+  - url: https://dev.api.example.local/api/v1
+    description: 開発環境
+
+tags:
+  - name: Auth
+  - name: Users
+  - name: OSS
+  - name: OSS Versions
+  - name: Tags
+  - name: Projects
+  - name: Project Usages
+  - name: Scope Policy
+  - name: Audit
+  - name: Export
+
+# ★ デフォルトは JWT(Bearer) を要求
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: 互換用途の Basic 認証（将来廃止予定）
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: アクセストークン用 JWT（リフレッシュなし）
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: 1 始まりのページ番号
+      schema: { type: integer, minimum: 1, default: 1 }
+    SizeParam:
+      name: size
+      in: query
+      description: 1ページ件数 (最大 200)
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    SortParam:
+      name: sort
+      in: query
+      description: "ソート指定 (例: name,asc / createdAt,desc)"
+      schema: { type: string }
+
+  responses:
+    NotFound:
+      description: リソースが存在しない
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    BadRequest:
+      description: 不正なリクエスト
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Unauthorized:
+      description: 認証失敗
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Forbidden:
+      description: 権限不足
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Problem" }
+
+  schemas:
+    Problem:
+      type: object
+      description: RFC 9457 / RFC 7807 型エラー応答ボディ
+      properties:
+        type:
+          type: string
+          format: uri
+          nullable: true
+          description: 問題タイプ識別 URI（拡張分類用）
+        title:
+          type: string
+          description: エラーの概要メッセージ（人間可読）
+        status:
+          type: integer
+          description: HTTP ステータスコード
+        detail:
+          type: string
+          nullable: true
+          description: 追加詳細メッセージ
+        instance:
+          type: string
+          format: uri
+          nullable: true
+          description: エラーが発生した具体的インスタンス URI（トレースID等）
+        code:
+          type: string
+          nullable: true
+          description: アプリケーション独自エラーコード
+        errors:
+          type: array
+          description: フィールド単位バリデーションエラー配列
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: エラーが発生したフィールド名（JSON Pointer など）
+              message:
+                type: string
+                description: フィールドに対するエラーメッセージ
+      required: [title, status]
+
+    # ---- JWT 関連追加 ----
+    LoginResponse:
+      type: object
+      description: ログイン成功時のレスポンス
+      properties:
+        accessToken:
+          type: string
+          description: "JWT アクセストークン。Authorization: Bearer にセットする"
+        expiresIn:
+          type: integer
+          description: トークンの有効期限（秒）
+      required: [accessToken, expiresIn]
+
+    JwtClaims:
+      type: object
+      description: JWT に含める代表的クレーム例（参考情報）
+      properties:
+        sub:
+          type: string
+          description: ユーザーID
+        username:
+          type: string
+          description: ログインID
+        roles:
+          type: array
+          description: 付与ロール一覧
+          items: { $ref: "#/components/schemas/Role" }
+        exp:
+          type: integer
+          description: 有効期限 (UNIX epoch seconds)
+        iat:
+          type: integer
+          description: 発行時刻 (UNIX epoch seconds)
+
+    # ---- ENUMS ----
+    Layer:
+      type: string
+      enum:
+        [
+          OS,
+          RUNTIME,
+          DB,
+          MIDDLEWARE,
+          LIB,
+          FRAMEWORK,
+          TOOL_BUILD,
+          TOOL_DEV,
+          TOOL_TEST,
+          DOC,
+          OTHER,
+        ]
+      description: OSS 技術レイヤ分類（OS=OS, LIB=ライブラリ 等）
+      x-enumDescriptions:
+        - オペレーティングシステム（再配布するイメージや基盤）
+        - 実行ランタイム/言語実装（JVM, Python, Node.js 等）
+        - データベースエンジン
+        - 通信/メッセージング/キャッシュ等ミドルウェア
+        - ライブラリ（アプリにリンク/取り込み）
+        - アプリ/言語フレームワーク（Spring, Vue 等）
+        - ビルド専用ツール（Maven, CMake 等）
+        - 開発支援/IDE/静的解析など
+        - テスト専用ツール（JUnit, Catch2 等）
+        - ドキュメント生成/文書化ツール
+        - 上記に当てはまらないその他
+    UsageRole:
+      type: string
+      enum:
+        [
+          BUNDLED_BINARY,
+          BUNDLED_SOURCE,
+          STATIC_LINK,
+          DYNAMIC_LINK,
+          RUNTIME_REQUIRED,
+          SERVER_ENV,
+          BUILD_ONLY,
+          DEV_ONLY,
+          TEST_ONLY,
+        ]
+      description: プロジェクト内での利用形態（配布対象か／工程限定か）
+      x-enumDescriptions:
+        - バイナリをそのまま成果物に同梱
+        - ソースコードを成果物に同梱
+        - 静的リンクにより最終バイナリへ取り込み
+        - 動的ライブラリとして同梱/参照
+        - 実行時環境として必要（顧客側準備含む）
+        - サーバ運用環境のみで使用（配布物外）
+        - ビルド工程のみで使用（成果物不含）
+        - 開発専用（IDE/フォーマッタ等 配布物不含）
+        - テスト工程専用（配布物不含）
+    ScopeStatus:
+      type: string
+      enum: [IN_SCOPE, OUT_SCOPE, REVIEW_NEEDED]
+      description: 納品対象スコープ判定状態（IN_SCOPE=含む, OUT_SCOPE=除外, REVIEW_NEEDED=要判定）
+      x-enumDescriptions:
+        - 納品対象に含める
+        - 納品対象から除外
+        - 判定保留（要レビュー）
+    SupplierType:
+      type: string
+      enum: [UPSTREAM, INTERNAL_FORK, REPACKAGE]
+      description: 取得・供給形態（フォークや再パッケージか）
+      x-enumDescriptions:
+        - 上流そのまま利用
+        - 社内フォーク（改変あり可能）
+        - 再パッケージ/独自配布形態
+    ReviewStatus:
+      type: string
+      enum: [draft, verified]
+      description: バージョンレビュー状態（draft=未承認, verified=確認済）
+      x-enumDescriptions:
+        - 未レビュー/暫定登録
+        - レビュー済/確認済
+    UsageType:
+      type: string
+      enum: [runtime, build, dev, test, other]
+      description: 旧来の利用種別（後方互換用途。将来的に UsageRole へ統一予定）
+      x-enumDescriptions:
+        - 実行時利用
+        - ビルド工程利用
+        - 開発工程利用
+        - テスト工程利用
+        - その他分類（移行用）
+
+    # ---- BASE MODELS ----
+    Tag:
+      type: object
+      description: OSSコンポーネントに付与する分類タグ
+      properties:
+        id: { type: string, format: uuid, description: タグ ID }
+        name: { type: string, description: タグ名称（ユニーク） }
+        createdAt: { type: string, format: date-time, description: 作成日時 }
+      required: [id, name]
+
+    OssComponent:
+      type: object
+      description: OSS の論理的名称（バージョン共通情報）
+      properties:
+        id: { type: string, format: uuid, description: OSSコンポーネント ID }
+        name:
+          {
+            type: string,
+            description: 表示名 / ユニーク（大文字小文字区別ポリシーは実装で決定）,
+          }
+        normalizedName:
+          { type: string, description: 検索用正規化名称（小文字化・記号除去） }
+        homepageUrl:
+          {
+            type: string,
+            format: uri,
+            nullable: true,
+            description: 公式サイト URL,
+          }
+        repositoryUrl:
+          {
+            type: string,
+            format: uri,
+            nullable: true,
+            description: ソースリポジトリ（Git 等）URL,
+          }
+        description:
+          { type: string, nullable: true, description: 簡易説明 / メモ }
+        primaryLanguage:
+          {
+            type: string,
+            nullable: true,
+            description: "主言語（例: C, C++, Go, Java）",
+          }
+        layers:
+          type: array
+          description: 技術レイヤ分類（複数指定可）
+          items: { $ref: "#/components/schemas/Layer" }
+        defaultUsageRole:
+          $ref: "#/components/schemas/UsageRole"
+          nullable: true
+          description: 新規 ProjectUsage 作成時の初期 usageRole 推奨値
+        deprecated: { type: boolean, description: 非推奨フラグ（新規利用抑止） }
+        createdAt: { type: string, format: date-time, description: 作成日時 }
+        updatedAt: { type: string, format: date-time, description: 更新日時 }
+        tags:
+          type: array
+          description: 付与タグ一覧
+          items: { $ref: "#/components/schemas/Tag" }
+      required: [id, name, deprecated, createdAt, updatedAt]
+
+    OssComponentCreateRequest:
+      type: object
+      description: OSSコンポーネント作成リクエスト
+      required: [name]
+      properties:
+        name: { type: string, description: OSS 表示名 }
+        homepageUrl:
+          {
+            type: string,
+            format: uri,
+            nullable: true,
+            description: 公式サイト URL,
+          }
+        repositoryUrl:
+          {
+            type: string,
+            format: uri,
+            nullable: true,
+            description: リポジトリ URL,
+          }
+        description: { type: string, nullable: true, description: 説明 / 備考 }
+        primaryLanguage: { type: string, nullable: true, description: 主言語 }
+        layers:
+          type: array
+          description: 技術レイヤ配列
+          items: { $ref: "#/components/schemas/Layer" }
+        defaultUsageRole:
+          $ref: "#/components/schemas/UsageRole"
+          nullable: true
+          description: デフォルト usageRole
+        tagIds:
+          type: array
+          description: 初期付与するタグ ID 群
+          items: { type: string, format: uuid }
+
+    OssComponentUpdateRequest:
+      type: object
+      description: OSSコンポーネント更新リクエスト（部分）
+      properties:
+        name: { type: string, description: "新しい名称" }
+        homepageUrl:
+          {
+            type: string,
+            format: uri,
+            nullable: true,
+            description: "公式サイト URL",
+          }
+        repositoryUrl:
+          {
+            type: string,
+            format: uri,
+            nullable: true,
+            description: "リポジトリ URL",
+          }
+        description:
+          { type: string, nullable: true, description: "説明 / 備考" }
+        primaryLanguage: { type: string, nullable: true, description: "主言語" }
+        layers:
+          type: array
+          description: 技術レイヤ配列
+          items: { $ref: "#/components/schemas/Layer" }
+        defaultUsageRole:
+          $ref: "#/components/schemas/UsageRole"
+          nullable: true
+          description: "デフォルト usageRole"
+        deprecated: { type: boolean, description: "非推奨フラグ" }
+        tagIds:
+          type: array
+          description: 置換後のタグ ID 配列
+          items: { type: string, format: uuid }
+
+    OssVersion:
+      type: object
+      description: 個別バージョン情報
+      properties:
+        id: { type: string, format: uuid, description: "バージョン ID" }
+        ossId:
+          { type: string, format: uuid, description: "親 OSSコンポーネント ID" }
+        version:
+          { type: string, description: "バージョン文字列 (SemVer 互換推奨)" }
+        releaseDate:
+          {
+            type: string,
+            format: date,
+            nullable: true,
+            description: "上流リリース日",
+          }
+        licenseExpressionRaw:
+          {
+            type: string,
+            nullable: true,
+            description: "SPDX 互換ライセンス式（上流取得時点）",
+          }
+        licenseConcluded:
+          {
+            type: string,
+            nullable: true,
+            description: "社内審査確定ライセンス式",
+          }
+        purl:
+          {
+            type: string,
+            nullable: true,
+            description: "package-url (例: pkg:maven/...)",
+          }
+        cpeList:
+          type: array
+          description: CPE 文字列配列（脆弱性紐付け用）
+          items: { type: string }
+        hashSha256:
+          type: string
+          pattern: "^[A-Fa-f0-9]{64}$"
+          nullable: true
+          description: "配布アーカイブ等の SHA-256 ハッシュ"
+        modified: { type: boolean, description: "社内改変有無" }
+        modificationDescription:
+          { type: string, nullable: true, description: "改変内容概要" }
+        reviewStatus:
+          {
+            $ref: "#/components/schemas/ReviewStatus",
+            description: "レビュー状態",
+          }
+        lastReviewedAt:
+          {
+            type: string,
+            format: date-time,
+            nullable: true,
+            description: "最終レビュー日時",
+          }
+        scopeStatus:
+          {
+            $ref: "#/components/schemas/ScopeStatus",
+            description: "バージョン単位の推奨スコープ判定（参考）",
+          }
+        supplierType:
+          {
+            $ref: "#/components/schemas/SupplierType",
+            nullable: true,
+            description: "供給形態",
+          }
+        forkOriginUrl:
+          {
+            type: string,
+            format: uri,
+            nullable: true,
+            description: "フォーク元 URL (INTERNAL_FORK の場合)",
+          }
+        createdAt: { type: string, format: date-time, description: "作成日時" }
+        updatedAt: { type: string, format: date-time, description: "更新日時" }
+      required:
+        [
+          id,
+          ossId,
+          version,
+          modified,
+          reviewStatus,
+          scopeStatus,
+          createdAt,
+          updatedAt,
+        ]
+
+    OssVersionCreateRequest:
+      type: object
+      description: バージョン作成リクエスト
+      required: [version]
+      properties:
+        version: { type: string, description: "バージョン文字列" }
+        releaseDate:
+          {
+            type: string,
+            format: date,
+            nullable: true,
+            description: "リリース日",
+          }
+        licenseExpressionRaw:
+          { type: string, nullable: true, description: "生ライセンス式" }
+        purl: { type: string, nullable: true, description: "package-url" }
+        cpeList:
+          type: array
+          description: CPE 配列
+          items: { type: string }
+        hashSha256:
+          type: string
+          pattern: "^[A-Fa-f0-9]{64}$"
+          nullable: true
+          description: "アーカイブ SHA-256"
+        modified: { type: boolean, default: false, description: "社内改変有無" }
+        modificationDescription:
+          { type: string, nullable: true, description: "改変概要" }
+        supplierType:
+          {
+            $ref: "#/components/schemas/SupplierType",
+            nullable: true,
+            description: "供給形態",
+          }
+        forkOriginUrl:
+          {
+            type: string,
+            format: uri,
+            nullable: true,
+            description: "フォーク元 URL",
+          }
+
+    OssVersionUpdateRequest:
+      type: object
+      description: バージョン更新リクエスト（部分）
+      properties:
+        releaseDate:
+          {
+            type: string,
+            format: date,
+            nullable: true,
+            description: "リリース日",
+          }
+        licenseExpressionRaw:
+          { type: string, nullable: true, description: "生ライセンス式" }
+        licenseConcluded:
+          { type: string, nullable: true, description: "確定ライセンス式" }
+        purl: { type: string, nullable: true, description: "package-url" }
+        cpeList:
+          type: array
+          description: CPE 配列
+          items: { type: string }
+        hashSha256:
+          type: string
+          pattern: "^[A-Fa-f0-9]{64}$"
+          nullable: true
+          description: "SHA-256 ハッシュ"
+        modified: { type: boolean, description: "改変有無" }
+        modificationDescription:
+          { type: string, nullable: true, description: "改変概要" }
+        reviewStatus:
+          {
+            $ref: "#/components/schemas/ReviewStatus",
+            description: "レビュー状態",
+          }
+        scopeStatus:
+          {
+            $ref: "#/components/schemas/ScopeStatus",
+            description: "推奨スコープ判定",
+          }
+        supplierType:
+          {
+            $ref: "#/components/schemas/SupplierType",
+            nullable: true,
+            description: "供給形態",
+          }
+        forkOriginUrl:
+          {
+            type: string,
+            format: uri,
+            nullable: true,
+            description: "フォーク元 URL",
+          }
+
+    Project:
+      type: object
+      description: プロジェクト（納品単位）
+      properties:
+        id: { type: string, format: uuid, description: "プロジェクト ID" }
+        projectCode: { type: string, description: "社内識別コード（ユニーク）" }
+        name: { type: string, description: "プロジェクト名称" }
+        department: { type: string, nullable: true, description: "担当部署" }
+        manager:
+          { type: string, nullable: true, description: "責任者 / 担当者名" }
+        deliveryDate:
+          {
+            type: string,
+            format: date,
+            nullable: true,
+            description: "納品予定日",
+          }
+        description:
+          { type: string, nullable: true, description: "説明 / 備考" }
+        ossUsageCount: { type: integer, description: "紐付く OSS 利用件数集計" }
+        createdAt: { type: string, format: date-time, description: "作成日時" }
+        updatedAt: { type: string, format: date-time, description: "更新日時" }
+      required: [id, projectCode, name, createdAt, updatedAt]
+
+    ProjectCreateRequest:
+      type: object
+      description: プロジェクト作成リクエスト
+      required: [projectCode, name]
+      properties:
+        projectCode:
+          { type: string, description: "ユニークなプロジェクトコード" }
+        name: { type: string, description: "名称" }
+        department: { type: string, nullable: true, description: "部署" }
+        manager: { type: string, nullable: true, description: "責任者" }
+        deliveryDate:
+          { type: string, format: date, nullable: true, description: "納品日" }
+        description:
+          { type: string, nullable: true, description: "説明 / 備考" }
+
+    ProjectUpdateRequest:
+      type: object
+      description: プロジェクト更新リクエスト
+      properties:
+        name: { type: string, description: "名称" }
+        department: { type: string, nullable: true, description: "部署" }
+        manager: { type: string, nullable: true, description: "責任者" }
+        deliveryDate:
+          { type: string, format: date, nullable: true, description: "納品日" }
+        description:
+          { type: string, nullable: true, description: "説明 / 備考" }
+
+    ProjectUsage:
+      type: object
+      description: プロジェクトにおける特定 OSS バージョンの利用レコード
+      properties:
+        id: { type: string, format: uuid, description: "利用 ID" }
+        projectId:
+          { type: string, format: uuid, description: "プロジェクト ID" }
+        ossId:
+          {
+            type: string,
+            format: uuid,
+            description: "OSSコンポーネント ID (利便性重複)",
+          }
+        ossVersionId:
+          { type: string, format: uuid, description: "OSS バージョン ID" }
+        usageRole:
+          { $ref: "#/components/schemas/UsageRole", description: "利用形態" }
+        scopeStatus:
+          {
+            $ref: "#/components/schemas/ScopeStatus",
+            description: "スコープ判定",
+          }
+        inclusionNote:
+          { type: string, nullable: true, description: "IN/OUT 判断理由メモ" }
+        directDependency:
+          { type: boolean, description: "直接依存なら true (間接は false)" }
+        addedAt: { type: string, format: date-time, description: "登録日時" }
+        evaluatedAt:
+          {
+            type: string,
+            format: date-time,
+            nullable: true,
+            description: "スコープ判定更新日時",
+          }
+        evaluatedBy:
+          { type: string, nullable: true, description: "判定実施ユーザ" }
+      required:
+        [
+          id,
+          projectId,
+          ossId,
+          ossVersionId,
+          usageRole,
+          scopeStatus,
+          directDependency,
+          addedAt,
+        ]
+
+    ProjectUsageCreateRequest:
+      type: object
+      description: プロジェクト利用作成リクエスト
+      required: [ossId, ossVersionId, usageRole]
+      properties:
+        ossId:
+          { type: string, format: uuid, description: "OSSコンポーネント ID" }
+        ossVersionId:
+          { type: string, format: uuid, description: "OSS バージョン ID" }
+        usageRole:
+          { $ref: "#/components/schemas/UsageRole", description: "利用形態" }
+        directDependency:
+          { type: boolean, default: true, description: "直接依存なら true" }
+        inclusionNote:
+          { type: string, nullable: true, description: "初期理由メモ" }
+
+    ProjectUsageUpdateRequest:
+      type: object
+      description: プロジェクト利用更新リクエスト
+      properties:
+        ossVersionId:
+          {
+            type: string,
+            format: uuid,
+            description: "新しい OSS バージョン ID",
+          }
+        usageRole:
+          { $ref: "#/components/schemas/UsageRole", description: "利用形態" }
+        directDependency: { type: boolean, description: "直接依存フラグ" }
+        inclusionNote: { type: string, nullable: true, description: "理由メモ" }
+        scopeStatus:
+          {
+            $ref: "#/components/schemas/ScopeStatus",
+            description: "スコープ判定 (手動上書き)",
+          }
+
+    ScopeStatusUpdateRequest:
+      type: object
+      description: スコープ判定更新リクエスト
+      required: [scopeStatus]
+      properties:
+        scopeStatus:
+          {
+            $ref: "#/components/schemas/ScopeStatus",
+            description: "更新後ステータス",
+          }
+        reasonCode:
+          {
+            type: string,
+            nullable: true,
+            description: "理由コード (マスタ化想定)",
+          }
+        reasonNote:
+          { type: string, nullable: true, description: "自由記述理由" }
+
+    ScopePolicy:
+      type: object
+      description: スコープ自動判定ポリシー設定
+      properties:
+        id: { type: string, format: uuid, description: "ポリシー ID" }
+        runtimeRequiredDefaultInScope:
+          {
+            type: boolean,
+            description: "RUNTIME_REQUIRED を自動 IN_SCOPE にするフラグ",
+          }
+        serverEnvIncluded:
+          { type: boolean, description: "SERVER_ENV を IN_SCOPE とみなすか" }
+        autoMarkForksInScope:
+          {
+            type: boolean,
+            description: "INTERNAL_FORK を自動 IN_SCOPE 化するか",
+          }
+        updatedAt:
+          { type: string, format: date-time, description: "最終更新日時" }
+        updatedBy: { type: string, description: "更新ユーザ" }
+
+    ScopePolicyUpdateRequest:
+      type: object
+      description: スコープポリシー更新リクエスト
+      properties:
+        runtimeRequiredDefaultInScope:
+          {
+            type: boolean,
+            description: "RUNTIME_REQUIRED 自動 IN_SCOPE フラグ",
+          }
+        serverEnvIncluded:
+          { type: boolean, description: "SERVER_ENV を IN_SCOPE とするか" }
+        autoMarkForksInScope:
+          { type: boolean, description: "INTERNAL_FORK 自動 IN_SCOPE フラグ" }
+
+    TagCreateRequest:
+      type: object
+      description: タグ作成リクエスト
+      required: [name]
+      properties:
+        name: { type: string, description: "タグ名称" }
+
+    PagedResult_OssComponent:
+      type: object
+      description: OSSコンポーネントページング結果
+      properties:
+        items:
+          type: array
+          description: 結果アイテム配列
+          items: { $ref: "#/components/schemas/OssComponent" }
+        page: { type: integer, description: "現在ページ (1 始まり)" }
+        size: { type: integer, description: "ページサイズ" }
+        total: { type: integer, description: "総件数" }
+
+    PagedResult_OssVersion:
+      type: object
+      description: OSS バージョンページング結果
+      properties:
+        items:
+          type: array
+          description: 結果アイテム配列
+          items: { $ref: "#/components/schemas/OssVersion" }
+        page: { type: integer, description: "現在ページ" }
+        size: { type: integer, description: "ページサイズ" }
+        total: { type: integer, description: "総件数" }
+
+    PagedResult_Project:
+      type: object
+      description: プロジェクト一覧ページング結果
+      properties:
+        items:
+          type: array
+          description: 結果アイテム配列
+          items: { $ref: "#/components/schemas/Project" }
+        page: { type: integer, description: "現在ページ" }
+        size: { type: integer, description: "ページサイズ" }
+        total: { type: integer, description: "総件数" }
+
+    PagedResult_ProjectUsage:
+      type: object
+      description: プロジェクト利用レコードのページング結果
+      properties:
+        items:
+          type: array
+          description: 結果アイテム配列
+          items: { $ref: "#/components/schemas/ProjectUsage" }
+        page: { type: integer, description: "現在ページ" }
+        size: { type: integer, description: "ページサイズ" }
+        total: { type: integer, description: "総件数" }
+
+    # ---- USER / ROLE ----
+    Role:
+      type: string
+      enum: [ADMIN, EDITOR, VIEWER]
+      description: アクセス制御ロール（ADMIN=全権, EDITOR=編集可, VIEWER=参照のみ）
+      x-enumDescriptions:
+        - 管理者。ユーザー管理/ポリシー変更/全CRUDが可能
+        - 編集者。OSS/プロジェクト/利用情報の作成・更新・削除が可能（ユーザー管理不可）
+        - 閲覧者。読み取りのみ可能
+
+    User:
+      type: object
+      description: システム利用ユーザー情報
+      properties:
+        id: { type: string, format: uuid, description: "ユーザーID" }
+        username: { type: string, description: "ログインID（ユニーク）" }
+        displayName: { type: string, description: "表示名" }
+        email:
+          {
+            type: string,
+            format: email,
+            nullable: true,
+            description: "メールアドレス",
+          }
+        roles:
+          type: array
+          description: 付与ロール一覧
+          items: { $ref: "#/components/schemas/Role" }
+        active: { type: boolean, description: "有効/無効フラグ" }
+        createdAt: { type: string, format: date-time, description: "作成日時" }
+        updatedAt: { type: string, format: date-time, description: "更新日時" }
+      required: [id, username, roles, active, createdAt, updatedAt]
+
+    UserCreateRequest:
+      type: object
+      description: ユーザー作成リクエスト
+      required: [username, roles]
+      properties:
+        username: { type: string, description: "ログインID" }
+        displayName: { type: string, description: "表示名" }
+        email:
+          {
+            type: string,
+            format: email,
+            nullable: true,
+            description: "メールアドレス",
+          }
+        password:
+          {
+            type: string,
+            description: "初期パスワード（JWTでも登録時のみ使用可）",
+          }
+        roles:
+          type: array
+          items: { $ref: "#/components/schemas/Role" }
+          description: 付与するロール一覧
+        active: { type: boolean, default: true, description: "有効化フラグ" }
+
+    UserUpdateRequest:
+      type: object
+      description: ユーザー更新リクエスト（部分）
+      properties:
+        displayName: { type: string, description: "表示名" }
+        email:
+          {
+            type: string,
+            format: email,
+            nullable: true,
+            description: "メールアドレス",
+          }
+        password: { type: string, description: "パスワード再設定用（任意）" }
+        roles:
+          type: array
+          items: { $ref: "#/components/schemas/Role" }
+          description: 付与ロール一覧（管理者のみ変更可）
+        active: { type: boolean, description: "有効/無効切替" }
+
+    PagedResult_User:
+      type: object
+      description: ユーザー一覧ページング結果
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/User" }
+        page: { type: integer }
+        size: { type: integer }
+        total: { type: integer }
+
+paths:
+  ################################
+  # Auth (JWT login)
+  ################################
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: ログイン（JWT発行）
+      operationId: login
+      security: [] # 認証不要
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  description: ログインID
+                password:
+                  type: string
+                  format: password
+                  description: パスワード
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LoginResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: ログアウト（アクセストークン無効化／ログ記録用）
+      operationId: logout
+      x-rolesAllowed: [VIEWER, EDITOR, ADMIN]
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /me:
+    get:
+      tags: [Users]
+      summary: 現在ログイン中ユーザー情報取得
+      operationId: getCurrentUser
+      x-rolesAllowed: [VIEWER, EDITOR, ADMIN]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  ################################
+  # 既存エンドポイント（以下は元定義を踏襲、必要なら401/403を追記）
+  ################################
+
+  /oss:
+    get:
+      tags: [OSS]
+      summary: OSSコンポーネント一覧取得
+      operationId: listOssComponents
+      x-rolesAllowed: [VIEWER, EDITOR, ADMIN]
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+        - name: name
+          in: query
+          schema: { type: string }
+          description: 部分一致
+        - name: layers
+          in: query
+          description: カンマ区切り Layer フィルタ (例 LIB,DB)
+          schema: { type: string }
+        - name: tag
+          in: query
+          schema: { type: string }
+          description: タグ名 (正確一致)
+        - name: inScopeOnly
+          in: query
+          schema: { type: boolean }
+          description: true の場合 IN_SCOPE のバージョンを一つ以上持つもののみ
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PagedResult_OssComponent" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [OSS]
+      summary: OSSコンポーネント作成
+      operationId: createOssComponent
+      x-rolesAllowed: [EDITOR, ADMIN]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OssComponentCreateRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OssComponent" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /oss/{ossId}:
+    get:
+      tags: [OSS]
+      summary: OSSコンポーネント詳細
+      operationId: getOssComponent
+      x-rolesAllowed: [VIEWER, EDITOR, ADMIN]
+      parameters:
+        - name: ossId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OssComponent" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    patch:
+      tags: [OSS]
+      summary: OSSコンポーネント更新 (部分)
+      operationId: updateOssComponent
+      x-rolesAllowed: [EDITOR, ADMIN]
+      parameters:
+        - name: ossId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OssComponentUpdateRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OssComponent" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    delete:
+      tags: [OSS]
+      summary: OSSコンポーネントを非推奨 (deprecated=true) に設定
+      operationId: deprecateOssComponent
+      x-rolesAllowed: [EDITOR, ADMIN]
+      parameters:
+        - name: ossId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: No Content }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /oss/{ossId}/versions:
+    get:
+      tags: [OSS Versions]
+      summary: 指定 OSS のバージョン一覧
+      operationId: listOssVersions
+      x-rolesAllowed: [VIEWER, EDITOR, ADMIN]
+      parameters:
+        - name: ossId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - name: reviewStatus
+          in: query
+          schema: { $ref: "#/components/schemas/ReviewStatus" }
+        - name: scopeStatus
+          in: query
+          schema: { $ref: "#/components/schemas/ScopeStatus" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PagedResult_OssVersion" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [OSS Versions]
+      summary: バージョン追加
+      operationId: createOssVersion
+      x-rolesAllowed: [EDITOR, ADMIN]
+      parameters:
+        - name: ossId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OssVersionCreateRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OssVersion" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /oss/{ossId}/versions/{versionId}:
+    get:
+      tags: [OSS Versions]
+      summary: バージョン詳細
+      operationId: getOssVersion
+      x-rolesAllowed: [VIEWER, EDITOR, ADMIN]
+      parameters:
+        - name: ossId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: versionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OssVersion" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    patch:
+      tags: [OSS Versions]
+      summary: バージョン更新
+      operationId: updateOssVersion
+      x-rolesAllowed: [EDITOR, ADMIN]
+      parameters:
+        - name: ossId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: versionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OssVersionUpdateRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OssVersion" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    delete:
+      tags: [OSS Versions]
+      summary: バージョン削除 (論理/物理は実装方針による)
+      operationId: deleteOssVersion
+      x-rolesAllowed: [ADMIN]
+      parameters:
+        - name: ossId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: versionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: No Content }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /tags:
+    get:
+      tags: [Tags]
+      summary: タグ一覧
+      operationId: listTags
+      x-rolesAllowed: [VIEWER, EDITOR, ADMIN]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Tag" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Tags]
+      summary: タグ作成
+      operationId: createTag
+      x-rolesAllowed: [EDITOR, ADMIN]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TagCreateRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tag" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /tags/{tagId}:
+    delete:
+      tags: [Tags]
+      summary: タグ削除
+      operationId: deleteTag
+      x-rolesAllowed: [EDITOR, ADMIN]
+      parameters:
+        - name: tagId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: No Content }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /projects:
+    get:
+      tags: [Projects]
+      summary: プロジェクト一覧
+      operationId: listProjects
+      x-rolesAllowed: [VIEWER, EDITOR, ADMIN]
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - name: code
+          in: query
+          schema: { type: string }
+        - name: name
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PagedResult_Project" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Projects]
+      summary: プロジェクト作成
+      operationId: createProject
+      x-rolesAllowed: [EDITOR, ADMIN]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectCreateRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /projects/{projectId}:
+    get:
+      tags: [Projects]
+      summary: プロジェクト詳細
+      operationId: getProject
+      x-rolesAllowed: [VIEWER, EDITOR, ADMIN]
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    patch:
+      tags: [Projects]
+      summary: プロジェクト更新
+      operationId: updateProject
+      x-rolesAllowed: [EDITOR, ADMIN]
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectUpdateRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    delete:
+      tags: [Projects]
+      summary: プロジェクト削除 (論理予定)
+      operationId: deleteProject
+      x-rolesAllowed: [ADMIN]
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: No Content }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /projects/{projectId}/usages:
+    get:
+      tags: [Project Usages]
+      summary: プロジェクト中利用 OSS 一覧
+      operationId: listProjectUsages
+      x-rolesAllowed: [VIEWER, EDITOR, ADMIN]
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - name: scopeStatus
+          in: query
+          schema: { $ref: "#/components/schemas/ScopeStatus" }
+        - name: usageRole
+          in: query
+          schema: { $ref: "#/components/schemas/UsageRole" }
+        - name: direct
+          in: query
+          description: 直接依存のみ true
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PagedResult_ProjectUsage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Project Usages]
+      summary: プロジェクト利用追加
+      operationId: createProjectUsage
+      x-rolesAllowed: [EDITOR, ADMIN]
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectUsageCreateRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectUsage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /projects/{projectId}/usages/{usageId}:
+    patch:
+      tags: [Project Usages]
+      summary: 利用情報更新
+      operationId: updateProjectUsage
+      x-rolesAllowed: [EDITOR, ADMIN]
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: usageId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectUsageUpdateRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectUsage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    delete:
+      tags: [Project Usages]
+      summary: 利用削除
+      operationId: deleteProjectUsage
+      x-rolesAllowed: [EDITOR, ADMIN]
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: usageId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: No Content }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /projects/{projectId}/usages/{usageId}/scope:
+    patch:
+      tags: [Project Usages]
+      summary: スコープ判定更新
+      operationId: updateProjectUsageScope
+      x-rolesAllowed: [EDITOR, ADMIN]
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: usageId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScopeStatusUpdateRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectUsage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /scope/policy:
+    get:
+      tags: [Scope Policy]
+      summary: 現行スコープポリシー取得
+      operationId: getScopePolicy
+      x-rolesAllowed: [VIEWER, EDITOR, ADMIN]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScopePolicy" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    patch:
+      tags: [Scope Policy]
+      summary: スコープポリシー更新 (管理者)
+      operationId: updateScopePolicy
+      x-rolesAllowed: [ADMIN]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScopePolicyUpdateRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScopePolicy" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /users:
+    get:
+      tags: [Users]
+      summary: ユーザー一覧
+      operationId: listUsers
+      x-rolesAllowed: [ADMIN]
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - name: username
+          in: query
+          schema: { type: string }
+          description: 部分一致検索
+        - name: role
+          in: query
+          schema: { $ref: "#/components/schemas/Role" }
+          description: ロールで絞り込み
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PagedResult_User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Users]
+      summary: ユーザー作成
+      operationId: createUser
+      x-rolesAllowed: [ADMIN]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserCreateRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /users/{userId}:
+    get:
+      tags: [Users]
+      summary: ユーザー詳細
+      operationId: getUser
+      x-rolesAllowed: [ADMIN]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    patch:
+      tags: [Users]
+      summary: ユーザー更新
+      operationId: updateUser
+      x-rolesAllowed: [ADMIN]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserUpdateRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    delete:
+      tags: [Users]
+      summary: ユーザー削除 (論理/物理は実装次第)
+      operationId: deleteUser
+      x-rolesAllowed: [ADMIN]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: No Content }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /audit:
+    get:
+      tags: [Audit]
+      summary: 監査ログ簡易検索 (Phase1簡易)
+      operationId: searchAuditLogs
+      x-rolesAllowed: [ADMIN]
+      parameters:
+        - name: entityType
+          in: query
+          schema: { type: string }
+        - name: entityId
+          in: query
+          schema: { type: string }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        entityType: { type: string }
+                        entityId: { type: string }
+                        action: { type: string }
+                        at: { type: string, format: date-time }
+                        user: { type: string }
+                        summary: { type: string }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /projects/{projectId}/export:
+    get:
+      tags: [Export]
+      summary: プロジェクト納品用エクスポート (プレースホルダ)
+      operationId: exportProjectArtifacts
+      x-rolesAllowed: [VIEWER, EDITOR, ADMIN]
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: format
+          in: query
+          required: true
+          schema: { type: string, enum: [csv, spdx-json] }
+        - name: scopes
+          in: query
+          schema: { type: string, description: "IN_SCOPE など (カンマ列挙)" }
+      responses:
+        "200":
+          description: Export ファイル (現状 JSON/CSV テキスト)
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+            application/json:
+              schema:
+                type: object
+                properties:
+                  placeholder: { type: string }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+# 追加予定 (将来)
+# /import/sbom, /licenses, /notice, /vulnerabilities など

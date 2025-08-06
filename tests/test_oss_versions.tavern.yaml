@@ -1,0 +1,194 @@
+test_name: "create and list oss versions"
+
+stages:
+  - name: create oss
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        name: version-oss
+    response:
+      status_code: 201
+      strict: false
+      json:
+        id: !anystr
+        name: version-oss
+        deprecated: false
+        createdAt: !anystr
+        updatedAt: !anystr
+      save:
+        json:
+          oss_id: id
+
+  - name: create version
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss/{oss_id}/versions"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        version: "1.0.0"
+    response:
+      status_code: 201
+      strict: false
+      json:
+        id: !anystr
+        ossId: "{oss_id}"
+        version: "1.0.0"
+        modified: false
+        reviewStatus: draft
+        scopeStatus: IN_SCOPE
+        createdAt: !anystr
+        updatedAt: !anystr
+      save:
+        json:
+          version_id: id
+
+  - name: list versions
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss/{oss_id}/versions"
+      method: GET
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 200
+      strict: false
+      json:
+        page: 1
+        size: 50
+        total: 1
+        items:
+          - id: "{version_id}"
+            ossId: "{oss_id}"
+            version: "1.0.0"
+            modified: false
+            reviewStatus: draft
+            scopeStatus: IN_SCOPE
+            createdAt: !anystr
+            updatedAt: !anystr
+---
+
+test_name: "create oss version forbidden"
+
+stages:
+  - name: create viewer user
+    request:
+      url: "{tavern.env_vars.BASE_URL}/users"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        username: version_viewer
+        roles: [VIEWER]
+        password: "$2a$10$Om2EuihRx7HkQQH6kGR92e6JrjZKoggTONqqITt4pmi84LmQg0oDO"
+    response:
+      status_code: 201
+
+  - name: login as viewer
+    request:
+      url: "{tavern.env_vars.BASE_URL}/auth/login"
+      method: POST
+      json:
+        username: version_viewer
+        password: viewerpass
+    response:
+      status_code: 200
+      save:
+        json:
+          viewer_token: accessToken
+
+  - name: create oss for forbidden test
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        name: version-forbidden-oss
+    response:
+      status_code: 201
+      save:
+        json:
+          oss_id: id
+
+  - name: create version with viewer
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss/{oss_id}/versions"
+      method: POST
+      headers:
+        Authorization: "Bearer {viewer_token}"
+      json:
+        version: "0.1.0"
+    response:
+      status_code: 403
+---
+
+test_name: "create oss version unauthorized"
+
+stages:
+  - name: create oss
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        name: version-unauth-oss
+    response:
+      status_code: 201
+      save:
+        json:
+          oss_id: id
+
+  - name: create version without token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss/{oss_id}/versions"
+    
+      method: POST
+      json:
+        version: "0.0.1"
+    response:
+      status_code: 401
+---
+
+test_name: "create oss version not found"
+marks: [xfail]
+
+stages:
+  - name: create version for missing oss
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss/00000000-0000-0000-0000-000000000000/versions"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        version: "1.0.0"
+    response:
+      status_code: 404
+---
+
+test_name: "list oss versions unauthorized"
+
+stages:
+  - name: create oss
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        name: version-list-unauth-oss
+    response:
+      status_code: 201
+      save:
+        json:
+          oss_id: id
+
+  - name: list versions without token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss/{oss_id}/versions"
+      method: GET
+    response:
+      status_code: 401

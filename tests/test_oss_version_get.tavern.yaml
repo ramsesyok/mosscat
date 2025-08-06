@@ -1,0 +1,158 @@
+test_name: "get oss version success"
+
+stages:
+  - name: create oss
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        name: get-version-oss
+    response:
+      status_code: 201
+      strict: false
+      json:
+        id: !anystr
+      save:
+        json:
+          oss_id: id
+
+  - name: create version
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss/{oss_id}/versions"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        version: "1.2.3"
+    response:
+      status_code: 201
+      strict: false
+      json:
+        id: !anystr
+        ossId: "{oss_id}"
+        version: "1.2.3"
+      save:
+        json:
+          version_id: id
+
+  - name: get version
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss/{oss_id}/versions/{version_id}"
+      method: GET
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 200
+      strict: false
+      json:
+        id: "{version_id}"
+        ossId: "{oss_id}"
+        version: "1.2.3"
+        modified: false
+        reviewStatus: draft
+        scopeStatus: IN_SCOPE
+        createdAt: !anystr
+        updatedAt: !anystr
+
+---
+
+test_name: "get oss version forbidden"
+
+stages:
+  - name: create no-role user
+    request:
+      url: "{tavern.env_vars.BASE_URL}/users"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        username: version_get_norole
+        roles: []
+        password: "$2a$10$Om2EuihRx7HkQQH6kGR92e6JrjZKoggTONqqITt4pmi84LmQg0oDO"
+    response:
+      status_code: 201
+
+  - name: login as norole
+    request:
+      url: "{tavern.env_vars.BASE_URL}/auth/login"
+      method: POST
+      json:
+        username: version_get_norole
+        password: viewerpass
+    response:
+      status_code: 200
+      save:
+        json:
+          norole_token: accessToken
+
+  - name: create oss for forbidden
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        name: version-get-forbidden
+    response:
+      status_code: 201
+      strict: false
+      json:
+        id: !anystr
+      save:
+        json:
+          oss_id: id
+
+  - name: create version for forbidden
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss/{oss_id}/versions"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        version: "0.1.0"
+    response:
+      status_code: 201
+      strict: false
+      json:
+        id: !anystr
+      save:
+        json:
+          version_id: id
+
+  - name: get version with norole token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss/{oss_id}/versions/{version_id}"
+      method: GET
+      headers:
+        Authorization: "Bearer {norole_token}"
+    response:
+      status_code: 403
+
+---
+
+test_name: "get oss version unauthorized"
+
+stages:
+  - name: request without token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss/00000000-0000-0000-0000-000000000000/versions/00000000-0000-0000-0000-000000000000"
+      method: GET
+    response:
+      status_code: 401
+
+---
+
+test_name: "get oss version not found"
+marks: [xfail]
+
+stages:
+  - name: get non-existent version
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss/00000000-0000-0000-0000-000000000000/versions/00000000-0000-0000-0000-000000000001"
+      method: GET
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 404

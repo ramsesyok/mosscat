@@ -1,0 +1,49 @@
+test_name: "create viewer user"
+
+stages:
+  - name: create viewer user
+    request:
+      url: "{tavern.env_vars.BASE_URL}/users"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        username: viewer1
+        roles: [VIEWER]
+        password: viewerpass
+    response:
+      status_code: 201
+      json:
+        id: !anystr
+        username: viewer1
+        roles: [VIEWER]
+        active: true
+        createdAt: !anystr
+        updatedAt: !anystr
+        email: null
+
+---
+
+test_name: "create editor user"
+
+stages:
+  - name: create editor user
+    request:
+      url: "{tavern.env_vars.BASE_URL}/users"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        username: editor1
+        roles: [EDITOR]
+        password: editorpass
+    response:
+      status_code: 201
+      json:
+        id: !anystr
+        username: editor1
+        roles: [EDITOR]
+        active: true
+        createdAt: !anystr
+        updatedAt: !anystr
+        email: null

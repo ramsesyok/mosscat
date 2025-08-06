@@ -1,0 +1,108 @@
+test_name: "create and list projects"
+
+stages:
+  - name: create project
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        projectCode: tavern-prj
+        name: tavern project
+    response:
+      status_code: 201
+      strict: false
+      json:
+        id: !anystr
+        projectCode: tavern-prj
+        name: tavern project
+        createdAt: !anystr
+        updatedAt: !anystr
+      save:
+        json:
+          project_id: id
+
+  - name: list projects
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects"
+      method: GET
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 200
+      strict: false
+      json:
+        page: 1
+        size: 50
+        total: 1
+        items:
+          - id: "{project_id}"
+            projectCode: tavern-prj
+            name: tavern project
+            createdAt: !anystr
+            updatedAt: !anystr
+
+---
+
+test_name: "list projects unauthorized"
+
+stages:
+  - name: request without token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects"
+      method: GET
+    response:
+      status_code: 401
+
+---
+
+test_name: "project creation forbidden for viewer"
+
+stages:
+  - name: create viewer user
+    request:
+      url: "{tavern.env_vars.BASE_URL}/users"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        username: project_viewer
+        roles: [VIEWER]
+        password: "$2a$10$Om2EuihRx7HkQQH6kGR92e6JrjZKoggTONqqITt4pmi84LmQg0oDO"
+    response:
+      status_code: 201
+
+  - name: login as viewer
+    request:
+      url: "{tavern.env_vars.BASE_URL}/auth/login"
+      method: POST
+      json:
+        username: project_viewer
+        password: viewerpass
+    response:
+      status_code: 200
+      save:
+        json:
+          viewer_token: accessToken
+
+  - name: list projects with viewer token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects"
+      method: GET
+      headers:
+        Authorization: "Bearer {viewer_token}"
+    response:
+      status_code: 200
+
+  - name: attempt create project with viewer token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects"
+      method: POST
+      headers:
+        Authorization: "Bearer {viewer_token}"
+      json:
+        projectCode: tavern-prj-view
+        name: viewer project
+    response:
+      status_code: 403

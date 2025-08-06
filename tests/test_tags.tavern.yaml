@@ -1,0 +1,103 @@
+test_name: "create and list tags"
+
+stages:
+  - name: create tag
+    request:
+      url: "{tavern.env_vars.BASE_URL}/tags"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        name: tavern-tag
+    response:
+      status_code: 201
+      strict: false
+      json:
+        id: !anystr
+        name: tavern-tag
+        createdAt: !anystr
+      save:
+        json:
+          tag_id: id
+
+  - name: list tags
+    request:
+      url: "{tavern.env_vars.BASE_URL}/tags"
+      method: GET
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 200
+      strict: false
+      json:
+        - id: "{tag_id}"
+          name: tavern-tag
+          createdAt: !anystr
+
+---
+
+test_name: "tag creation forbidden for viewer"
+
+stages:
+  - name: create viewer user
+    request:
+      url: "{tavern.env_vars.BASE_URL}/users"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        username: tag_viewer
+        roles: [VIEWER]
+        password: "$2a$10$Om2EuihRx7HkQQH6kGR92e6JrjZKoggTONqqITt4pmi84LmQg0oDO"
+    response:
+      status_code: 201
+
+  - name: login as viewer
+    request:
+      url: "{tavern.env_vars.BASE_URL}/auth/login"
+      method: POST
+      json:
+        username: tag_viewer
+        password: viewerpass
+    response:
+      status_code: 200
+      save:
+        json:
+          viewer_token: accessToken
+
+  - name: attempt create tag with viewer token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/tags"
+      method: POST
+      headers:
+        Authorization: "Bearer {viewer_token}"
+      json:
+        name: viewer-tag
+    response:
+      status_code: 403
+
+---
+
+test_name: "tag creation unauthorized"
+
+stages:
+  - name: create tag without token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/tags"
+      method: POST
+      json:
+        name: unauthorized-tag
+    response:
+      status_code: 401
+
+---
+
+test_name: "list tags unauthorized"
+
+stages:
+  - name: list tags without token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/tags"
+      method: GET
+    response:
+      status_code: 401

@@ -1,0 +1,44 @@
+test_name: "create and list oss"
+
+stages:
+  - name: create oss
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        name: tavern-oss
+    response:
+      status_code: 201
+      strict: false
+      json:
+        id: !anystr
+        name: tavern-oss
+        deprecated: false
+        createdAt: !anystr
+        updatedAt: !anystr
+      save:
+        json:
+          oss_id: id
+
+  - name: list oss
+    request:
+      url: "{tavern.env_vars.BASE_URL}/oss"
+      method: GET
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 200
+      strict: false
+      json:
+        page: 1
+        size: 50
+        total: 1
+        items:
+          - id: "{oss_id}"
+            name: tavern-oss
+            deprecated: false
+            createdAt: !anystr
+            updatedAt: !anystr
+

@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS scope_policies;
+DROP TABLE IF EXISTS project_usages;
+DROP TABLE IF EXISTS projects;
+DROP TABLE IF EXISTS oss_versions;
+DROP TABLE IF EXISTS oss_component_layers;
+DROP TABLE IF EXISTS oss_component_tags;
+DROP TABLE IF EXISTS oss_components;
+DROP TABLE IF EXISTS tags;

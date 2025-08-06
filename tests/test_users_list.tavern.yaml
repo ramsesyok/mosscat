@@ -1,0 +1,99 @@
+test_name: "list users success"
+
+stages:
+  - name: create user for list
+    request:
+      url: "{tavern.env_vars.BASE_URL}/users"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        username: list_user_success
+        roles: [VIEWER]
+        password: listpass
+    response:
+      status_code: 201
+      json:
+        id: !anystr
+        username: list_user_success
+        roles: [VIEWER]
+        active: true
+        createdAt: !anystr
+        updatedAt: !anystr
+        email: null
+
+  - name: list users by username
+    request:
+      url: "{tavern.env_vars.BASE_URL}/users"
+      method: GET
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      params:
+        username: list_user_success
+        size: 10
+    response:
+      status_code: 200
+      json:
+        items:
+          - id: !anystr
+            username: list_user_success
+            roles: [VIEWER]
+            active: true
+            createdAt: !anystr
+            updatedAt: !anystr
+            email: null
+        page: 1
+        size: 10
+        total: 1
+
+---
+
+test_name: "list users unauthorized"
+
+stages:
+  - name: request without token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/users"
+      method: GET
+    response:
+      status_code: 401
+
+---
+
+test_name: "list users forbidden"
+
+stages:
+  - name: create viewer user
+    request:
+      url: "{tavern.env_vars.BASE_URL}/users"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        username: list_user_forbidden
+        roles: [VIEWER]
+        password: "$2a$10$Om2EuihRx7HkQQH6kGR92e6JrjZKoggTONqqITt4pmi84LmQg0oDO"
+    response:
+      status_code: 201
+
+  - name: login as viewer
+    request:
+      url: "{tavern.env_vars.BASE_URL}/auth/login"
+      method: POST
+      json:
+        username: list_user_forbidden
+        password: viewerpass
+    response:
+      status_code: 200
+      save:
+        json:
+          viewer_token: accessToken
+
+  - name: list users with viewer token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/users"
+      method: GET
+      headers:
+        Authorization: "Bearer {viewer_token}"
+    response:
+      status_code: 403

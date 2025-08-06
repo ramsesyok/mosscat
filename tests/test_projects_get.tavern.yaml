@@ -1,0 +1,66 @@
+test_name: "get project success"
+
+stages:
+  - name: create project for get
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        projectCode: get-prj
+        name: get project
+    response:
+      status_code: 201
+      strict: false
+      json:
+        id: !anystr
+        projectCode: get-prj
+        name: get project
+        createdAt: !anystr
+        updatedAt: !anystr
+      save:
+        json:
+          project_id: id
+
+  - name: get project by id
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}"
+      method: GET
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 200
+      strict: false
+      json:
+        id: "{project_id}"
+        projectCode: get-prj
+        name: get project
+        createdAt: !anystr
+        updatedAt: !anystr
+
+---
+
+test_name: "get project unauthorized"
+
+stages:
+  - name: request without token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/00000000-0000-0000-0000-000000000000"
+      method: GET
+    response:
+      status_code: 401
+
+---
+
+test_name: "get project not found"
+
+stages:
+  - name: get non-existent project
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/00000000-0000-0000-0000-000000000001"
+      method: GET
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 404

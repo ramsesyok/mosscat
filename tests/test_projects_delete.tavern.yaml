@@ -1,0 +1,114 @@
+test_name: "delete project success"
+
+stages:
+  - name: create project for delete
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        projectCode: delete-prj
+        name: delete project
+    response:
+      status_code: 201
+      strict: false
+      json:
+        id: !anystr
+      save:
+        json:
+          project_id: id
+
+  - name: delete project
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{project_id}"
+      method: DELETE
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 204
+
+---
+
+test_name: "delete project forbidden"
+
+stages:
+  - name: create viewer user
+    request:
+      url: "{tavern.env_vars.BASE_URL}/users"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        username: delete_project_viewer
+        roles: [VIEWER]
+        password: "$2a$10$Om2EuihRx7HkQQH6kGR92e6JrjZKoggTONqqITt4pmi84LmQg0oDO"
+    response:
+      status_code: 201
+      save:
+        json:
+          viewer_id: id
+
+  - name: login as viewer
+    request:
+      url: "{tavern.env_vars.BASE_URL}/auth/login"
+      method: POST
+      json:
+        username: delete_project_viewer
+        password: viewerpass
+    response:
+      status_code: 200
+      save:
+        json:
+          viewer_token: accessToken
+
+  - name: create project for forbidden delete
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects"
+      method: POST
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+      json:
+        projectCode: delete-forbidden
+        name: forbidden project
+    response:
+      status_code: 201
+      save:
+        json:
+          forbidden_project_id: id
+
+  - name: delete project with viewer token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/{forbidden_project_id}"
+      method: DELETE
+      headers:
+        Authorization: "Bearer {viewer_token}"
+    response:
+      status_code: 403
+
+---
+
+test_name: "delete project unauthorized"
+
+stages:
+  - name: delete without token
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/00000000-0000-0000-0000-000000000000"
+      method: DELETE
+    response:
+      status_code: 401
+
+---
+
+test_name: "delete project not found"
+marks: [xfail]
+
+stages:
+  - name: delete non-existent project
+    request:
+      url: "{tavern.env_vars.BASE_URL}/projects/00000000-0000-0000-0000-000000000001"
+      method: DELETE
+      headers:
+        Authorization: "Bearer {tavern.env_vars.TOKEN}"
+    response:
+      status_code: 404
