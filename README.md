@@ -1,4 +1,4 @@
-# mosscat
+<img src="./assets/logo_title.png" width="248px" height="248px"></image>
 
 mosscat は社内向けの OSS 利用状況を一元管理するためのバックエンドサービスです。Go 言語と [Echo](https://echo.labstack.com/) を用いた REST API として実装されており、PostgreSQL もしくは SQLite をデータストアとして利用できます。
 

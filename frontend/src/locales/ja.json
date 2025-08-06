@@ -1,0 +1,133 @@
+{
+  "common": {
+    "search": "検索",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "削除"
+  },
+  "toast": {
+    "saved": "保存しました",
+    "deleted": "削除しました",
+    "exportDone": "エクスポートが完了しました"
+  },
+  "error": {
+    "fetchFailed": "取得に失敗しました",
+    "saveFailed": "保存に失敗しました",
+    "deleteFailed": "削除に失敗しました",
+    "exportFailed": "エクスポートに失敗しました"
+  },
+  "oss": {
+    "listTitle": "OSSコンポーネント一覧",
+    "filter": {
+      "name": "名称",
+      "layers": "レイヤ",
+      "tag": "タグ",
+      "inScopeOnly": "IN_SCOPEのみ"
+    },
+    "table": {
+      "name": "名称",
+      "homepage": "ホームページ",
+      "repository": "リポジトリ",
+      "primaryLanguage": "主要言語",
+      "layers": "レイヤ",
+      "tags": "タグ",
+      "actions": "操作",
+      "deprecated": "非推奨",
+      "add": "OSSの追加",
+      "addVersion": "バージョンを追加"
+    },
+    "detailTitle": "OSS詳細",
+    "detail": {
+      "titleNew": "OSS作成",
+      "titleEdit": "OSS編集",
+      "save": "保存",
+      "cancel": "キャンセル"
+    },
+    "versionList": {
+      "title": "バージョン一覧",
+      "version": "バージョン",
+      "releaseDate": "リリース日",
+      "close": "閉じる",
+      "add": "バージョン追加"
+    },
+    "versionDetail": {
+      "titleNew": "バージョン作成",
+      "titleEdit": "バージョン編集",
+      "save": "保存",
+      "cancel": "キャンセル"
+    }
+  },
+  "project": {
+    "listTitle": "プロジェクト一覧",
+    "filter": {
+      "code": "コード",
+      "name": "名称",
+      "search": "検索"
+    },
+    "table": {
+      "code": "コード",
+      "name": "名称",
+      "deliveryDate": "納品日",
+      "ossUsageCount": "OSS数",
+      "add": "プロジェクトの追加"
+    },
+    "detailTitle": "プロジェクト詳細",
+    "export": {
+      "csv": "CSVエクスポート",
+      "spdx": "SPDX(JSON)エクスポート"
+    },
+    "detail": {
+      "titleNew": "プロジェクト作成",
+      "titleEdit": "プロジェクト編集",
+      "save": "保存",
+      "cancel": "キャンセル"
+    },
+    "registerUsage": "利用登録",
+    "usageList": {
+      "title": "利用OSS一覧",
+      "oss": "OSS ID",
+      "version": "バージョンID",
+      "role": "利用形態",
+      "scope": "スコープ",
+      "close": "閉じる"
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "tagsTitle": "タグ管理",
+    "tagsAdd": "タグ追加",
+    "tagsPlaceholder": "タグ名を入力",
+    "tagsDeleteConfirm": "このタグを削除しますか？",
+    "policyTitle": "スコープポリシー",
+    "policy": {
+      "runtimeRequired": "RUNTIME_REQUIRED を自動で IN_SCOPE",
+      "serverEnv": "SERVER_ENV を IN_SCOPE とみなす",
+      "autoFork": "INTERNAL_FORK を自動 IN_SCOPE",
+      "title": "スコープポリシー設定",
+      "runtimeRequiredDefaultInScope": "RUNTIME_REQUIRED を自動 IN_SCOPE",
+      "serverEnvIncluded": "SERVER_ENV を IN_SCOPE とみなす",
+      "autoMarkForksInScope": "INTERNAL_FORK を自動 IN_SCOPE",
+      "save": "保存",
+      "saved": "ポリシーを保存しました"
+    },
+    "tags": {
+      "title": "タグ管理",
+      "newTag": "新規タグ",
+      "add": "追加",
+      "confirmDelete": "タグを削除しますか？",
+      "added": "タグを追加しました",
+      "deleted": "タグを削除しました"
+    }
+  },
+  "export": {
+    "csv": "CSV",
+    "spdx": "SPDX JSON",
+    "toast": "エクスポートが完了しました"
+  },
+  "login": {
+    "title": "ログイン",
+    "username": "ユーザー名",
+    "password": "パスワード",
+    "submit": "ログイン"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "login": {
+    "title": "Login",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Login"
+  },
+  "project": {
+    "table": {
+      "add": "Add Project"
+    }
+  },
+  "oss": {
+    "table": {
+      "add": "Add OSS",
+      "addVersion": "Add Version",
+      "name": "Name",
+      "homepage": "Homepage",
+      "repository": "Repository",
+      "primaryLanguage": "Primary Language",
+      "layers": "Layers",
+      "tags": "Tags",
+      "actions": "Actions"
+    },
+    "versionList": {
+      "title": "Versions",
+      "version": "Version",
+      "releaseDate": "Release Date",
+      "close": "Close",
+      "add": "Add Version"
+    },
+    "versionDetail": {
+      "titleNew": "Add Version",
+      "titleEdit": "Edit Version",
+      "save": "Save",
+      "cancel": "Cancel"
+    }
+  }
+}
