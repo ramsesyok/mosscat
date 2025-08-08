@@ -39,5 +39,8 @@
       "save": "Save",
       "cancel": "Cancel"
     }
+  },
+  "error": {
+    "invalidUrl": "Invalid URL"
   }
 }

@@ -8,8 +8,16 @@
       <v-card-text>
         <v-form ref="formRef">
           <v-text-field v-model="form.name" label="Name" required />
-          <v-text-field v-model="form.homepageUrl" label="Homepage URL" />
-          <v-text-field v-model="form.repositoryUrl" label="Repository URL" />
+          <v-text-field
+            v-model="form.homepageUrl"
+            label="Homepage URL"
+            :rules="[urlRule]"
+          />
+          <v-text-field
+            v-model="form.repositoryUrl"
+            label="Repository URL"
+            :rules="[urlRule]"
+          />
           <v-select
             v-model="form.primaryLanguage"
             clearable
@@ -64,6 +72,16 @@
   }>()
 
   const { t } = useI18n()
+
+  const urlRule = (v?: string) => {
+    if (!v) return true
+    try {
+      new URL(v)
+      return true
+    } catch {
+      return t('error.invalidUrl')
+    }
+  }
 
   const languageOptions = ['C/C++', 'Java', 'Python', 'Go', 'Rust', 'PHP', 'C#']
   const layerOptions: Layer[] = [
@@ -174,6 +192,8 @@
   }
 
   async function onSave () {
+    const result = await formRef.value?.validate()
+    if (!result?.valid) return
     saving.value = true
     try {
       if (props.ossId) {
