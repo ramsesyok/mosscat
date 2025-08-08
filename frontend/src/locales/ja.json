@@ -15,7 +15,8 @@
     "fetchFailed": "取得に失敗しました",
     "saveFailed": "保存に失敗しました",
     "deleteFailed": "削除に失敗しました",
-    "exportFailed": "エクスポートに失敗しました"
+    "exportFailed": "エクスポートに失敗しました",
+    "invalidUrl": "URLが不正です"
   },
   "oss": {
     "listTitle": "OSSコンポーネント一覧",

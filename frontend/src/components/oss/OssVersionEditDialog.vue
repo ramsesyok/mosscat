@@ -6,10 +6,10 @@
       </v-card-title>
       <v-card-text>
         <v-form ref="formRef">
-          <v-text-field v-model="form.version" label="Version" :disabled="!isNew" required />
+          <v-text-field v-model="form.version" :disabled="!isNew" label="Version" required />
           <v-text-field v-model="form.releaseDate" label="Release Date" type="date" />
           <v-text-field v-model="form.licenseExpressionRaw" label="License Expression" />
-          <v-text-field v-model="form.purl" label="PURL" />
+          <v-text-field v-model="form.purl" label="PURL" :rules="[urlRule]" />
           <v-text-field v-model="form.cpeListInput" label="CPE List" />
           <v-text-field v-model="form.hashSha256" label="SHA256" />
           <v-checkbox v-model="form.modified" label="Modified" />
@@ -20,7 +20,11 @@
             :items="supplierTypeOptions"
             label="Supplier Type"
           />
-          <v-text-field v-model="form.forkOriginUrl" label="Fork Origin URL" />
+          <v-text-field
+            v-model="form.forkOriginUrl"
+            label="Fork Origin URL"
+            :rules="[urlRule]"
+          />
         </v-form>
       </v-card-text>
       <v-card-actions>
@@ -55,6 +59,16 @@
   const emit = defineEmits<{ (e: 'update:open', v: boolean): void, (e: 'saved'): void }>()
 
   const { t } = useI18n()
+
+  const urlRule = (v?: string) => {
+    if (!v) return true
+    try {
+      new URL(v)
+      return true
+    } catch {
+      return t('error.invalidUrl')
+    }
+  }
 
   const modelOpen = computed({
     get: () => props.open,
@@ -159,6 +173,8 @@
 
   async function onSave () {
     if (!props.ossId) return
+    const result = await formRef.value?.validate()
+    if (!result?.valid) return
     saving.value = true
     try {
       const cpeList = form.cpeListInput
