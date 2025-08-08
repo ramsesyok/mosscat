@@ -6,7 +6,8 @@
     "title": "Login",
     "username": "Username",
     "password": "Password",
-    "submit": "Login"
+    "submit": "Login",
+    "failed": "Login failed"
   },
   "project": {
     "table": {

@@ -36,6 +36,7 @@
   import { useRouter } from 'vue-router'
   import { useAuthStore } from '@/stores/auth/useAuthStore'
   import { RouteName } from '@/types/routes'
+  import { useToast } from '@/composables/useToast'
 
   const username = ref('')
   const password = ref('')
@@ -43,12 +44,15 @@
   const router = useRouter()
   const { t } = useI18n()
   const auth = useAuthStore()
+  const toast = useToast()
 
   async function onSubmit () {
     loading.value = true
     try {
       await auth.login(username.value, password.value)
       router.push({ name: RouteName.OssList as any })
+    } catch {
+      toast.error(t('login.failed'))
     } finally {
       loading.value = false
     }

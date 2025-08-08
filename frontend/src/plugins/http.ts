@@ -32,10 +32,13 @@ axios.interceptors.response.use(
       apiError.problem = problem
     }
     if (apiError.status === 401) {
-      const auth = useAuthStore()
-      auth.logout()
-      if (router.currentRoute.value.path !== '/') {
-        router.push('/')
+      const url = error.config?.url || ''
+      if (!url.endsWith('/auth/login') && !url.endsWith('/auth/logout')) {
+        const auth = useAuthStore()
+        auth.logout()
+        if (router.currentRoute.value.path !== '/') {
+          router.push('/')
+        }
       }
     }
     return Promise.reject(apiError)
