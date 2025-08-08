@@ -1,4 +1,7 @@
 {
+  "common": {
+    "logout": "Logout"
+  },
   "login": {
     "title": "Login",
     "username": "Username",
