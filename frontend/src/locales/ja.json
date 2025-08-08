@@ -3,7 +3,8 @@
     "search": "検索",
     "save": "保存",
     "cancel": "取消",
-    "delete": "削除"
+    "delete": "削除",
+    "logout": "ログアウト"
   },
   "toast": {
     "saved": "保存しました",

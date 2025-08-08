@@ -23,7 +23,12 @@ export const useAuthStore = defineStore('auth', {
       OpenAPI.TOKEN = res.accessToken
       localStorage.setItem('jwtToken', res.accessToken)
     },
-    logout () {
+    async logout () {
+      try {
+        await AuthService.logout()
+      } catch {
+        // ignore logout errors
+      }
       this.token = ''
       OpenAPI.TOKEN = undefined
       localStorage.removeItem('jwtToken')
