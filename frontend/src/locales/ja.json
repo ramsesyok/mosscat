@@ -129,6 +129,7 @@
     "title": "ログイン",
     "username": "ユーザー名",
     "password": "パスワード",
-    "submit": "ログイン"
+    "submit": "ログイン",
+    "failed": "ログインに失敗しました"
   }
 }
