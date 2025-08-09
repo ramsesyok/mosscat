@@ -35,6 +35,6 @@
 
   async function onLogout () {
     await auth.logout()
-    router.push({ name: RouteName.Login })
+    router.push({ name: RouteName.Login as any })
   }
 </script>
