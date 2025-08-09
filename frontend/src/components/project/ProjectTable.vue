@@ -23,7 +23,7 @@
           <th class="text-left">{{ $t('project.table.department') }}</th>
           <th class="text-left">{{ $t('project.table.deliveryDate') }}</th>
           <th class="text-left">{{ $t('project.table.manager') }}</th>
-          <th class="text-left">{{ $t('project.table.actions') }}</th>
+          <th class="text-left" style="width: 120px">{{ $t('project.table.actions') }}</th>
         </tr>
       </template>
       <template #item="{ item }">
@@ -33,7 +33,7 @@
           <td>{{ item.department }}</td>
           <td>{{ item.deliveryDate }}</td>
           <td>{{ item.manager }}</td>
-          <td class="text-right">
+          <td class="text-right" style="width: 120px">
             <v-btn icon="mdi-pencil" variant="text" @click.stop="emit('detail', item)" />
             <v-btn icon="mdi-view-list" variant="text" @click.stop="emit('usage', item)" />
             <v-menu location="bottom">
