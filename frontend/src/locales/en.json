@@ -38,6 +38,7 @@
       "title": "Versions",
       "version": "Version",
       "releaseDate": "Release Date",
+      "license": "License",
       "close": "Close",
       "add": "Add Version"
     },

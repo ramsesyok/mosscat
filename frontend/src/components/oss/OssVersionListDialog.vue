@@ -17,6 +17,7 @@
             <tr>
               <th class="text-left">{{ t('oss.versionList.version') }}</th>
               <th class="text-left">{{ t('oss.versionList.releaseDate') }}</th>
+              <th class="text-left">{{ t('oss.versionList.license') }}</th>
               <th class="text-left" style="width: 120px">{{ t('oss.table.actions') }}</th>
             </tr>
           </template>
@@ -24,6 +25,7 @@
             <tr>
               <td>{{ item.version }}</td>
               <td>{{ item.releaseDate }}</td>
+              <td>{{ item.licenseConcluded || item.licenseExpressionRaw }}</td>
               <td class="text-right" style="width: 120px">
                 <v-btn icon="mdi-pencil" variant="text" @click.stop="openEdit(item.id)" />
                 <v-btn icon="mdi-package-variant-plus" variant="text" @click.stop="openProjectSelect(item.id)" />
