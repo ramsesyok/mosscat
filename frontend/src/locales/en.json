@@ -20,6 +20,18 @@
       "manager": "Manager",
       "actions": "Actions",
       "add": "Add Project"
+    },
+    "detail": {
+      "titleNew": "Add Project",
+      "titleEdit": "Edit Project",
+      "code": "Code",
+      "name": "Name",
+      "department": "Department",
+      "manager": "Manager",
+      "deliveryDate": "Delivery Date",
+      "description": "Description",
+      "save": "Save",
+      "cancel": "Cancel"
     }
   },
   "oss": {
