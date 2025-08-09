@@ -1,6 +1,8 @@
 {
   "common": {
-    "logout": "Logout"
+    "logout": "Logout",
+    "delete": "Delete",
+    "confirmDelete": "Are you sure you want to delete?"
   },
   "login": {
     "title": "Login",
@@ -46,7 +48,11 @@
       "cancel": "Cancel"
     }
   },
+  "toast": {
+    "deleted": "Deleted"
+  },
   "error": {
-    "invalidUrl": "Invalid URL"
+    "invalidUrl": "Invalid URL",
+    "deleteFailed": "Failed to delete"
   }
 }

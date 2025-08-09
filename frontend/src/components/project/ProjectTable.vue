@@ -47,6 +47,9 @@
                 <v-list-item @click="emitExport(item.id, 'spdx-json')">
                   <v-list-item-title>{{ $t('export.spdx') }}</v-list-item-title>
                 </v-list-item>
+                <v-list-item @click="emit('delete', item)">
+                  <v-list-item-title>{{ $t('common.delete') }}</v-list-item-title>
+                </v-list-item>
               </v-list>
             </v-menu>
           </td>
@@ -70,7 +73,7 @@
   defineProps<Props>()
   const emit = defineEmits<{
     (e: 'update:page' | 'update:items-per-page', value: number): void
-    (e: 'row-click' | 'detail' | 'usage', item: Project): void
+    (e: 'row-click' | 'detail' | 'usage' | 'delete', item: Project): void
     (e: 'export', payload: { id: string, format: 'csv' | 'spdx-json' }): void
     (e: 'create'): void
   }>()
