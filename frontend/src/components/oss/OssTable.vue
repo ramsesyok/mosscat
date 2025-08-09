@@ -18,18 +18,18 @@
       <template #headers>
         <tr>
           <th class="text-left">{{ $t('oss.table.name') }}</th>
-          <th class="text-left" style="width: 25%">{{ $t('oss.table.homepage') }}</th>
-          <th class="text-left" style="width: 25%">{{ $t('oss.table.repository') }}</th>
-          <th class="text-left" style="width: auto">{{ $t('oss.table.primaryLanguage') }}</th>
+          <th v-if="display.xl.value" class="text-left" style="width: 25%">{{ $t('oss.table.homepage') }}</th>
+          <th v-if="display.smAndUp.value" class="text-left" style="width: 25%">{{ $t('oss.table.repository') }}</th>
+          <th v-if="display.mdAndUp.value" class="text-left" style="width: auto">{{ $t('oss.table.primaryLanguage') }}</th>
           <th class="text-left" style="width: auto">{{ $t('oss.table.layers') }}</th>
-          <th class="text-left" style="width: 20%">{{ $t('oss.table.tags') }}</th>
+          <th v-if="display.xl.value" class="text-left" style="width: 20%">{{ $t('oss.table.tags') }}</th>
           <th class="text-left" style="width: auto">{{ $t('oss.table.actions') }}</th>
         </tr>
       </template>
       <template #item="{ item }">
         <tr>
           <td>{{ item.name }}</td>
-          <td style="width: 25%">
+          <td v-if="display.xl.value" style="width: 25%">
             <a
               v-if="item.homepageUrl"
               :href="item.homepageUrl"
@@ -37,7 +37,7 @@
               target="_blank"
             >{{ item.homepageUrl }}</a>
           </td>
-          <td style="width: 25%">
+          <td v-if="display.smAndUp.value" style="width: 25%">
             <a
               v-if="item.repositoryUrl"
               :href="item.repositoryUrl"
@@ -45,9 +45,9 @@
               target="_blank"
             >{{ item.repositoryUrl }}</a>
           </td>
-          <td style="width: auto">{{ item.primaryLanguage }}</td>
+          <td v-if="display.mdAndUp.value" style="width: auto">{{ item.primaryLanguage }}</td>
           <td style="width: auto">{{ (item.layers || []).join(', ') }}</td>
-          <td style="width: 20%">
+          <td v-if="display.xl.value" style="width: 20%">
             <v-chip
               v-for="tag in item.tags"
               :key="tag.id"
@@ -96,6 +96,7 @@
 <script setup lang="ts">
   import type { OssComponent } from '@/api'
   import { onMounted, ref } from 'vue'
+  import { useDisplay } from 'vuetify'
   import { OssService } from '@/api'
   import OssEditDialog from './OssEditDialog.vue'
   import OssVersionListDialog from './OssVersionListDialog.vue'
@@ -109,6 +110,7 @@
   const editOpen = ref(false)
   const versionListOpen = ref(false)
   const selectedId = ref<string>()
+  const display = useDisplay()
 
   const emit = defineEmits<{
     (e: 'delete', item: OssComponent): void
