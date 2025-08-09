@@ -86,6 +86,12 @@
     "detail": {
       "titleNew": "プロジェクト作成",
       "titleEdit": "プロジェクト編集",
+      "code": "コード",
+      "name": "名称",
+      "department": "部署",
+      "manager": "担当者",
+      "deliveryDate": "納品日",
+      "description": "説明",
       "save": "保存",
       "cancel": "キャンセル"
     },

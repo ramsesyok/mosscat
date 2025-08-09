@@ -4,12 +4,34 @@
       <v-card-title>{{ isNew ? $t('project.detail.titleNew') : $t('project.detail.titleEdit') }}</v-card-title>
       <v-card-text>
         <v-form ref="formRef">
-          <v-text-field v-model="form.projectCode" :disabled="!isNew" label="Code" required />
-          <v-text-field v-model="form.name" label="Name" required />
-          <v-text-field v-model="form.department" label="Department" />
-          <v-text-field v-model="form.manager" label="Manager" />
-          <v-text-field v-model="form.deliveryDate" label="Delivery Date" type="date" />
-          <v-textarea v-model="form.description" label="Description" />
+          <v-text-field
+            v-model="form.projectCode"
+            :disabled="!isNew"
+            :label="$t('project.detail.code')"
+            required
+          />
+          <v-text-field
+            v-model="form.name"
+            :label="$t('project.detail.name')"
+            required
+          />
+          <v-text-field
+            v-model="form.department"
+            :label="$t('project.detail.department')"
+          />
+          <v-text-field
+            v-model="form.manager"
+            :label="$t('project.detail.manager')"
+          />
+          <v-text-field
+            v-model="form.deliveryDate"
+            :label="$t('project.detail.deliveryDate')"
+            type="date"
+          />
+          <v-textarea
+            v-model="form.description"
+            :label="$t('project.detail.description')"
+          />
         </v-form>
       </v-card-text>
       <v-card-actions>
