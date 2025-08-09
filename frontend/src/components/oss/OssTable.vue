@@ -123,6 +123,8 @@
       })
       items.value = res.items ?? []
       totalItems.value = res.total ?? 0
+    } catch (error) {
+      console.error(error)
     } finally {
       loading.value = false
     }

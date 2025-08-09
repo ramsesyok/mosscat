@@ -32,7 +32,7 @@ export const useOssStore = defineStore('oss', {
         this.list = res.items ?? []
         this.total = res.total ?? 0
       } catch (error) {
-        throw error
+        console.error(error)
       } finally {
         this.loading = false
       }
