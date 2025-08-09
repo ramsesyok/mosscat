@@ -51,7 +51,7 @@ stages:
       json:
         username: patch_project_viewer
         roles: [VIEWER]
-        password: "$2a$10$Om2EuihRx7HkQQH6kGR92e6JrjZKoggTONqqITt4pmi84LmQg0oDO"
+        password: "viewerpass"
     response:
       status_code: 201
       save:
