@@ -13,6 +13,7 @@
       :page="page"
       :total-items="total"
       @create="onCreate"
+      @delete="onDelete"
       @detail="onDetail"
       @export="onExport"
       @row-click="onRowClick"
@@ -34,6 +35,7 @@
 </template>
 
 <script setup lang="ts">
+  import type { Project } from '@/api'
   import { useI18n } from 'vue-i18n'
   import { ExportService } from '@/api'
   import { useProjectStore } from '@/stores/useProjectStore'
@@ -92,6 +94,17 @@
   function showToast (msg: string) {
     snackbarMessage.value = msg
     snackbar.value = true
+  }
+  async function onDelete (item: Project) {
+    if (!confirm(t('common.confirmDelete'))) return
+    try {
+      await store.delete(item.id)
+      await fetchList()
+      showToast(t('toast.deleted'))
+    } catch (error) {
+      console.error(error)
+      showToast(t('error.deleteFailed'))
+    }
   }
   async function onExport (payload: { id: string, format: 'csv' | 'spdx-json' }) {
     exporting.value = true

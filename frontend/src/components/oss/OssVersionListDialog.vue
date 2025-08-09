@@ -149,6 +149,7 @@
 
   async function remove (id: string) {
     if (!props.ossId) return
+    if (!confirm(t('common.confirmDelete'))) return
     await OssVersionsService.deleteOssVersion({ ossId: props.ossId, versionId: id })
     await load()
   }
