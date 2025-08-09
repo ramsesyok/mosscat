@@ -17,14 +17,14 @@
             <tr>
               <th class="text-left">{{ t('oss.versionList.version') }}</th>
               <th class="text-left">{{ t('oss.versionList.releaseDate') }}</th>
-              <th class="text-left">{{ t('oss.table.actions') }}</th>
+              <th class="text-left" style="width: 120px">{{ t('oss.table.actions') }}</th>
             </tr>
           </template>
           <template #item="{ item }">
             <tr>
               <td>{{ item.version }}</td>
               <td>{{ item.releaseDate }}</td>
-              <td class="text-right">
+              <td class="text-right" style="width: 120px">
                 <v-btn icon="mdi-pencil" variant="text" @click.stop="openEdit(item.id)" />
                 <v-btn icon="mdi-package-variant-plus" variant="text" @click.stop="openProjectSelect(item.id)" />
                 <v-btn icon="mdi-view-list" variant="text" @click.stop="openUsageList(item.id)" />
