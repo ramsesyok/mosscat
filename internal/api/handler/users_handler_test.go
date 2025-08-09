@@ -2,6 +2,7 @@ package handler
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -15,10 +16,18 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 
 	gen "github.com/ramsesyok/mosscat/internal/api/gen"
 	infrarepo "github.com/ramsesyok/mosscat/internal/infra/repository"
 )
+
+type bcryptMatcher struct{ plain string }
+
+func (m bcryptMatcher) Match(v driver.Value) bool {
+	s, ok := v.(string)
+	return ok && bcrypt.CompareHashAndPassword([]byte(s), []byte(m.plain)) == nil
+}
 
 func TestListUsers(t *testing.T) {
 	db, mock, err := sqlmock.New()
@@ -110,15 +119,63 @@ func TestCreateUser(t *testing.T) {
 	e := setupEcho(h)
 
 	query := regexp.QuoteMeta("INSERT INTO users (id, username, display_name, email, password_hash, roles, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-	mock.ExpectExec(query).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec(query).WithArgs(
+		sqlmock.AnyArg(), // id
+		"adm",
+		nil, // display_name
+		nil, // email
+		bcryptMatcher{plain: "pass"},
+		pq.Array([]string{"ADMIN"}),
+		true,
+		sqlmock.AnyArg(), // created_at
+		sqlmock.AnyArg(), // updated_at
+	).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	body := `{"username":"adm","roles":["ADMIN"]}`
+	body := `{"username":"adm","roles":["ADMIN"],"password":"pass"}`
 	req := httptest.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 
 	require.Equal(t, http.StatusCreated, rec.Code)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateUser(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	repo := &infrarepo.UserRepository{DB: db}
+	h := &Handler{UserRepo: repo}
+	e := setupEcho(h)
+
+	id := uuid.New()
+	now := time.Now()
+	getQuery := regexp.QuoteMeta("SELECT id, username, display_name, email, password_hash, roles, active, created_at, updated_at FROM users WHERE id = ?")
+	mock.ExpectQuery(getQuery).WithArgs(id.String()).WillReturnRows(
+		sqlmock.NewRows([]string{"id", "username", "display_name", "email", "password_hash", "roles", "active", "created_at", "updated_at"}).
+			AddRow(id.String(), "adm", nil, nil, "old", pq.StringArray{"ADMIN"}, true, now, now),
+	)
+
+	updateQuery := regexp.QuoteMeta("UPDATE users SET display_name = ?, email = ?, password_hash = ?, roles = ?, active = ?, updated_at = ? WHERE id = ?")
+	mock.ExpectExec(updateQuery).WithArgs(
+		nil,
+		nil,
+		bcryptMatcher{plain: "newpass"},
+		pq.Array([]string{"ADMIN"}),
+		true,
+		sqlmock.AnyArg(),
+		id.String(),
+	).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	body := `{"password":"newpass"}`
+	req := httptest.NewRequest(http.MethodPatch, "/users/"+id.String(), strings.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
