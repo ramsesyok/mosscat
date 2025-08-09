@@ -72,7 +72,6 @@ func toOssVersion(m model.OssVersion) gen.OssVersion {
 		Id:           uid,
 		OssId:        ossUID,
 		Version:      m.Version,
-		Modified:     m.Modified,
 		ReviewStatus: gen.ReviewStatus(m.ReviewStatus),
 		ScopeStatus:  gen.ScopeStatus(m.ScopeStatus),
 		CreatedAt:    m.CreatedAt.TimeValue(),
@@ -98,19 +97,9 @@ func toOssVersion(m model.OssVersion) gen.OssVersion {
 	if m.HashSha256 != nil {
 		res.HashSha256 = m.HashSha256
 	}
-	if m.ModificationDescription != nil {
-		res.ModificationDescription = m.ModificationDescription
-	}
 	if m.LastReviewedAt != nil {
 		t := m.LastReviewedAt.TimeValue()
 		res.LastReviewedAt = &t
-	}
-	if m.SupplierType != nil {
-		val := gen.SupplierType(*m.SupplierType)
-		res.SupplierType = &val
-	}
-	if m.ForkOriginURL != nil {
-		res.ForkOriginUrl = m.ForkOriginURL
 	}
 	return res
 }
@@ -405,19 +394,6 @@ func (h *Handler) CreateOssVersion(ctx echo.Context, ossId openapi_types.UUID) e
 	if req.HashSha256 != nil {
 		v.HashSha256 = req.HashSha256
 	}
-	if req.Modified != nil {
-		v.Modified = *req.Modified
-	}
-	if req.ModificationDescription != nil {
-		v.ModificationDescription = req.ModificationDescription
-	}
-	if req.SupplierType != nil {
-		val := string(*req.SupplierType)
-		v.SupplierType = &val
-	}
-	if req.ForkOriginUrl != nil {
-		v.ForkOriginURL = req.ForkOriginUrl
-	}
 	if err := h.OssVersionRepo.Create(ctx.Request().Context(), v); err != nil {
 		return err
 	}
@@ -481,24 +457,11 @@ func (h *Handler) UpdateOssVersion(ctx echo.Context, ossId openapi_types.UUID, v
 	if req.HashSha256 != nil {
 		v.HashSha256 = req.HashSha256
 	}
-	if req.Modified != nil {
-		v.Modified = *req.Modified
-	}
-	if req.ModificationDescription != nil {
-		v.ModificationDescription = req.ModificationDescription
-	}
 	if req.ReviewStatus != nil {
 		v.ReviewStatus = string(*req.ReviewStatus)
 	}
 	if req.ScopeStatus != nil {
 		v.ScopeStatus = string(*req.ScopeStatus)
-	}
-	if req.SupplierType != nil {
-		val := string(*req.SupplierType)
-		v.SupplierType = &val
-	}
-	if req.ForkOriginUrl != nil {
-		v.ForkOriginURL = req.ForkOriginUrl
 	}
 	v.UpdatedAt = dbtime.DBTime{Time: time.Now()}
 	if err := h.OssVersionRepo.Update(ctx.Request().Context(), v); err != nil {

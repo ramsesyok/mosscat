@@ -25,11 +25,19 @@ func setupSQLiteDB(t *testing.T) *sql.DB {
 	db, err := sql.Open("sqlite3", "file:test?mode=memory&cache=shared&_loc=auto")
 	require.NoError(t, err)
 	_, file, _, _ := runtime.Caller(0)
-	path := filepath.Join(filepath.Dir(file), "..", "..", "..", "migrations", "0001_create_tables.up.sql")
-	sqlBytes, err := os.ReadFile(path)
+	// Apply migration 0001
+	path1 := filepath.Join(filepath.Dir(file), "..", "..", "..", "migrations", "0001_create_tables.up.sql")
+	sqlBytes1, err := os.ReadFile(path1)
 	require.NoError(t, err)
-	sqlStr := strings.ReplaceAll(string(sqlBytes), "TIMESTAMPTZ", "TIMESTAMP")
-	_, err = db.Exec(sqlStr)
+	sqlStr1 := strings.ReplaceAll(string(sqlBytes1), "TIMESTAMPTZ", "TIMESTAMP")
+	_, err = db.Exec(sqlStr1)
+	require.NoError(t, err)
+
+	// Apply migration 0003 (move modification fields)
+	path3 := filepath.Join(filepath.Dir(file), "..", "..", "..", "migrations", "0003_move_modification_fields.up.sql")
+	sqlBytes3, err := os.ReadFile(path3)
+	require.NoError(t, err)
+	_, err = db.Exec(string(sqlBytes3))
 	require.NoError(t, err)
 	return db
 }
@@ -192,6 +200,7 @@ func TestRepositories_SQLite(t *testing.T) {
 			ScopeStatus:      "IN_SCOPE",
 			DirectDependency: true,
 			AddedAt:          now,
+			Modified:         false,
 		}
 		require.NoError(t, usageRepo.Create(ctx, usage))
 

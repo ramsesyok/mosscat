@@ -29,10 +29,10 @@ func TestOssVersionRepository_Search(t *testing.T) {
 	countQuery := regexp.QuoteMeta("SELECT COUNT(*) FROM oss_versions WHERE oss_id = ?")
 	mock.ExpectQuery(countQuery).WithArgs(f.OssID).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 
-	listQuery := regexp.QuoteMeta("SELECT id, oss_id, version, release_date, license_expression_raw, license_concluded, purl, cpe_list, hash_sha256, modified, modification_description, review_status, last_reviewed_at, scope_status, supplier_type, fork_origin_url, created_at, updated_at FROM oss_versions WHERE oss_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?")
+	listQuery := regexp.QuoteMeta("SELECT id, oss_id, version, release_date, license_expression_raw, license_concluded, purl, cpe_list, hash_sha256, review_status, last_reviewed_at, scope_status, created_at, updated_at FROM oss_versions WHERE oss_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?")
 	now := dbtime.DBTime{Time: time.Now()}
-	rows := sqlmock.NewRows([]string{"id", "oss_id", "version", "release_date", "license_expression_raw", "license_concluded", "purl", "cpe_list", "hash_sha256", "modified", "modification_description", "review_status", "last_reviewed_at", "scope_status", "supplier_type", "fork_origin_url", "created_at", "updated_at"}).
-		AddRow(uuid.NewString(), f.OssID, "1.0.0", now, nil, nil, nil, pq.StringArray{"cpe:/a"}, nil, false, nil, "draft", nil, "IN_SCOPE", nil, nil, now, now)
+	rows := sqlmock.NewRows([]string{"id", "oss_id", "version", "release_date", "license_expression_raw", "license_concluded", "purl", "cpe_list", "hash_sha256", "review_status", "last_reviewed_at", "scope_status", "created_at", "updated_at"}).
+		AddRow(uuid.NewString(), f.OssID, "1.0.0", now, nil, nil, nil, pq.StringArray{"cpe:/a"}, nil, "draft", nil, "IN_SCOPE", now, now)
 	mock.ExpectQuery(listQuery).WithArgs(f.OssID, 10, 0).WillReturnRows(rows)
 
 	res, total, err := repo.Search(context.Background(), f)
@@ -53,16 +53,15 @@ func TestOssVersionRepository_Create(t *testing.T) {
 		ID:           uuid.NewString(),
 		OssID:        uuid.NewString(),
 		Version:      "1.0.0",
-		Modified:     false,
 		ReviewStatus: "draft",
 		ScopeStatus:  "IN_SCOPE",
 		CreatedAt:    dbtime.DBTime{Time: time.Now()},
 		UpdatedAt:    dbtime.DBTime{Time: time.Now()},
 	}
 
-	query := regexp.QuoteMeta("INSERT INTO oss_versions (id, oss_id, version, release_date, license_expression_raw, license_concluded, purl, cpe_list, hash_sha256, modified, modification_description, review_status, last_reviewed_at, scope_status, supplier_type, fork_origin_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	query := regexp.QuoteMeta("INSERT INTO oss_versions (id, oss_id, version, release_date, license_expression_raw, license_concluded, purl, cpe_list, hash_sha256, review_status, last_reviewed_at, scope_status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	mock.ExpectExec(query).
-		WithArgs(v.ID, v.OssID, v.Version, v.ReleaseDate, v.LicenseExpressionRaw, v.LicenseConcluded, v.Purl, sqlmock.AnyArg(), v.HashSha256, v.Modified, v.ModificationDescription, v.ReviewStatus, v.LastReviewedAt, v.ScopeStatus, v.SupplierType, v.ForkOriginURL, v.CreatedAt, v.UpdatedAt).
+		WithArgs(v.ID, v.OssID, v.Version, v.ReleaseDate, v.LicenseExpressionRaw, v.LicenseConcluded, v.Purl, sqlmock.AnyArg(), v.HashSha256, v.ReviewStatus, v.LastReviewedAt, v.ScopeStatus, v.CreatedAt, v.UpdatedAt).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	err = repo.Create(context.Background(), v)
@@ -80,15 +79,14 @@ func TestOssVersionRepository_Update(t *testing.T) {
 	v := &model.OssVersion{
 		ID:           uuid.NewString(),
 		ReleaseDate:  func() *dbtime.DBTime { t := dbtime.DBTime{Time: time.Now()}; return &t }(),
-		Modified:     true,
 		ReviewStatus: "verified",
 		ScopeStatus:  "IN_SCOPE",
 		UpdatedAt:    dbtime.DBTime{Time: time.Now()},
 	}
 
-	query := regexp.QuoteMeta("UPDATE oss_versions SET release_date = ?, license_expression_raw = ?, license_concluded = ?, purl = ?, cpe_list = ?, hash_sha256 = ?, modified = ?, modification_description = ?, review_status = ?, last_reviewed_at = ?, scope_status = ?, supplier_type = ?, fork_origin_url = ?, updated_at = ? WHERE id = ?")
+	query := regexp.QuoteMeta("UPDATE oss_versions SET release_date = ?, license_expression_raw = ?, license_concluded = ?, purl = ?, cpe_list = ?, hash_sha256 = ?, review_status = ?, last_reviewed_at = ?, scope_status = ?, updated_at = ? WHERE id = ?")
 	mock.ExpectExec(query).
-		WithArgs(v.ReleaseDate, v.LicenseExpressionRaw, v.LicenseConcluded, v.Purl, sqlmock.AnyArg(), v.HashSha256, v.Modified, v.ModificationDescription, v.ReviewStatus, v.LastReviewedAt, v.ScopeStatus, v.SupplierType, v.ForkOriginURL, v.UpdatedAt, v.ID).
+		WithArgs(v.ReleaseDate, v.LicenseExpressionRaw, v.LicenseConcluded, v.Purl, sqlmock.AnyArg(), v.HashSha256, v.ReviewStatus, v.LastReviewedAt, v.ScopeStatus, v.UpdatedAt, v.ID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	err = repo.Update(context.Background(), v)

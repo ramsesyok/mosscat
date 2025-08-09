@@ -428,9 +428,6 @@ components:
           pattern: "^[A-Fa-f0-9]{64}$"
           nullable: true
           description: "配布アーカイブ等の SHA-256 ハッシュ"
-        modified: { type: boolean, description: "社内改変有無" }
-        modificationDescription:
-          { type: string, nullable: true, description: "改変内容概要" }
         reviewStatus:
           {
             $ref: "#/components/schemas/ReviewStatus",
@@ -448,32 +445,10 @@ components:
             $ref: "#/components/schemas/ScopeStatus",
             description: "バージョン単位の推奨スコープ判定（参考）",
           }
-        supplierType:
-          {
-            $ref: "#/components/schemas/SupplierType",
-            nullable: true,
-            description: "供給形態",
-          }
-        forkOriginUrl:
-          {
-            type: string,
-            format: uri,
-            nullable: true,
-            description: "フォーク元 URL (INTERNAL_FORK の場合)",
-          }
         createdAt: { type: string, format: date-time, description: "作成日時" }
         updatedAt: { type: string, format: date-time, description: "更新日時" }
       required:
-        [
-          id,
-          ossId,
-          version,
-          modified,
-          reviewStatus,
-          scopeStatus,
-          createdAt,
-          updatedAt,
-        ]
+        [id, ossId, version, reviewStatus, scopeStatus, createdAt, updatedAt]
 
     OssVersionCreateRequest:
       type: object
@@ -500,22 +475,6 @@ components:
           pattern: "^[A-Fa-f0-9]{64}$"
           nullable: true
           description: "アーカイブ SHA-256"
-        modified: { type: boolean, default: false, description: "社内改変有無" }
-        modificationDescription:
-          { type: string, nullable: true, description: "改変概要" }
-        supplierType:
-          {
-            $ref: "#/components/schemas/SupplierType",
-            nullable: true,
-            description: "供給形態",
-          }
-        forkOriginUrl:
-          {
-            type: string,
-            format: uri,
-            nullable: true,
-            description: "フォーク元 URL",
-          }
 
     OssVersionUpdateRequest:
       type: object
@@ -542,9 +501,6 @@ components:
           pattern: "^[A-Fa-f0-9]{64}$"
           nullable: true
           description: "SHA-256 ハッシュ"
-        modified: { type: boolean, description: "改変有無" }
-        modificationDescription:
-          { type: string, nullable: true, description: "改変概要" }
         reviewStatus:
           {
             $ref: "#/components/schemas/ReviewStatus",
@@ -554,19 +510,6 @@ components:
           {
             $ref: "#/components/schemas/ScopeStatus",
             description: "推奨スコープ判定",
-          }
-        supplierType:
-          {
-            $ref: "#/components/schemas/SupplierType",
-            nullable: true,
-            description: "供給形態",
-          }
-        forkOriginUrl:
-          {
-            type: string,
-            format: uri,
-            nullable: true,
-            description: "フォーク元 URL",
           }
 
     Project:
@@ -656,6 +599,22 @@ components:
           }
         evaluatedBy:
           { type: string, nullable: true, description: "判定実施ユーザ" }
+        modified: { type: boolean, description: "社内改変有無" }
+        modificationDescription:
+          { type: string, nullable: true, description: "改変内容概要" }
+        supplierType:
+          {
+            $ref: "#/components/schemas/SupplierType",
+            nullable: true,
+            description: "供給形態",
+          }
+        forkOriginUrl:
+          {
+            type: string,
+            format: uri,
+            nullable: true,
+            description: "フォーク元 URL (INTERNAL_FORK の場合)",
+          }
       required:
         [
           id,
@@ -666,6 +625,7 @@ components:
           scopeStatus,
           directDependency,
           addedAt,
+          modified,
         ]
 
     ProjectUsageCreateRequest:
@@ -683,6 +643,22 @@ components:
           { type: boolean, default: true, description: "直接依存なら true" }
         inclusionNote:
           { type: string, nullable: true, description: "初期理由メモ" }
+        modified: { type: boolean, default: false, description: "社内改変有無" }
+        modificationDescription:
+          { type: string, nullable: true, description: "改変概要" }
+        supplierType:
+          {
+            $ref: "#/components/schemas/SupplierType",
+            nullable: true,
+            description: "供給形態",
+          }
+        forkOriginUrl:
+          {
+            type: string,
+            format: uri,
+            nullable: true,
+            description: "フォーク元 URL",
+          }
 
     ProjectUsageUpdateRequest:
       type: object
@@ -702,6 +678,22 @@ components:
           {
             $ref: "#/components/schemas/ScopeStatus",
             description: "スコープ判定 (手動上書き)",
+          }
+        modified: { type: boolean, description: "社内改変有無" }
+        modificationDescription:
+          { type: string, nullable: true, description: "改変概要" }
+        supplierType:
+          {
+            $ref: "#/components/schemas/SupplierType",
+            nullable: true,
+            description: "供給形態",
+          }
+        forkOriginUrl:
+          {
+            type: string,
+            format: uri,
+            nullable: true,
+            description: "フォーク元 URL",
           }
 
     ScopeStatusUpdateRequest:

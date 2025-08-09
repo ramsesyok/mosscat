@@ -157,10 +157,7 @@ func TestToOssVersion_AllFields(t *testing.T) {
 	licConc := "MIT"
 	purl := "pkg:"
 	hash := "h"
-	modDesc := "m"
-	supp := "ORIGIN"
-	fork := "f"
-	version := model.OssVersion{ID: uuid.NewString(), OssID: uuid.NewString(), Version: "1", ReleaseDate: &rel, LicenseExpressionRaw: &licRaw, LicenseConcluded: &licConc, Purl: &purl, CpeList: []string{"c"}, HashSha256: &hash, Modified: true, ModificationDescription: &modDesc, ReviewStatus: "draft", LastReviewedAt: &now, ScopeStatus: "IN_SCOPE", SupplierType: &supp, ForkOriginURL: &fork, CreatedAt: now, UpdatedAt: now}
+	version := model.OssVersion{ID: uuid.NewString(), OssID: uuid.NewString(), Version: "1", ReleaseDate: &rel, LicenseExpressionRaw: &licRaw, LicenseConcluded: &licConc, Purl: &purl, CpeList: []string{"c"}, HashSha256: &hash, ReviewStatus: "draft", LastReviewedAt: &now, ScopeStatus: "IN_SCOPE", CreatedAt: now, UpdatedAt: now}
 	res := toOssVersion(version)
 	require.Equal(t, version.ID, res.Id.String())
 	require.NotNil(t, res.ReleaseDate)
@@ -170,8 +167,6 @@ func TestToOssVersion_AllFields(t *testing.T) {
 	require.Equal(t, gen.ReviewStatus(version.ReviewStatus), res.ReviewStatus)
 	require.NotNil(t, res.HashSha256)
 	require.Equal(t, hash, *res.HashSha256)
-	require.Equal(t, gen.SupplierType(supp), *res.SupplierType)
-	require.Equal(t, fork, *res.ForkOriginUrl)
 }
 
 func TestCreateOssComponent(t *testing.T) {
@@ -268,7 +263,6 @@ func TestCreateOssVersion_WithOptions(t *testing.T) {
 	require.Equal(t, ossID, created.OssID)
 	require.Equal(t, "pkg:", *created.Purl)
 	require.Equal(t, []string{"c"}, created.CpeList)
-	require.True(t, created.Modified)
 	require.NotNil(t, created.ReleaseDate)
 }
 

@@ -41,7 +41,7 @@ func (r *OssVersionRepository) Search(ctx context.Context, f domrepo.OssVersionF
 	}
 
 	offset := (f.Page - 1) * f.Size
-	listQuery := fmt.Sprintf(`SELECT id, oss_id, version, release_date, license_expression_raw, license_concluded, purl, cpe_list, hash_sha256, modified, modification_description, review_status, last_reviewed_at, scope_status, supplier_type, fork_origin_url, created_at, updated_at FROM oss_versions %s ORDER BY created_at DESC LIMIT ? OFFSET ?`, whereSQL)
+	listQuery := fmt.Sprintf(`SELECT id, oss_id, version, release_date, license_expression_raw, license_concluded, purl, cpe_list, hash_sha256, review_status, last_reviewed_at, scope_status, created_at, updated_at FROM oss_versions %s ORDER BY created_at DESC LIMIT ? OFFSET ?`, whereSQL)
 	argsWithLimit := append(args, f.Size, offset)
 	rows, err := r.DB.QueryContext(ctx, listQuery, argsWithLimit...)
 	if err != nil {
@@ -54,10 +54,9 @@ func (r *OssVersionRepository) Search(ctx context.Context, f domrepo.OssVersionF
 		var v model.OssVersion
 		var releaseDate sql.NullTime
 		var licenseRaw, licenseConc, purl, hash sql.NullString
-		var modDesc, supplier, fork sql.NullString
 		var lastReviewed sql.NullTime
 		var cpeList pq.StringArray
-		if err := rows.Scan(&v.ID, &v.OssID, &v.Version, &releaseDate, &licenseRaw, &licenseConc, &purl, &cpeList, &hash, &v.Modified, &modDesc, &v.ReviewStatus, &lastReviewed, &v.ScopeStatus, &supplier, &fork, &v.CreatedAt, &v.UpdatedAt); err != nil {
+		if err := rows.Scan(&v.ID, &v.OssID, &v.Version, &releaseDate, &licenseRaw, &licenseConc, &purl, &cpeList, &hash, &v.ReviewStatus, &lastReviewed, &v.ScopeStatus, &v.CreatedAt, &v.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
 		v.ReleaseDate = timePtr(releaseDate)
@@ -66,10 +65,7 @@ func (r *OssVersionRepository) Search(ctx context.Context, f domrepo.OssVersionF
 		v.Purl = strPtr(purl)
 		v.CpeList = []string(cpeList)
 		v.HashSha256 = strPtr(hash)
-		v.ModificationDescription = strPtr(modDesc)
 		v.LastReviewedAt = timePtr(lastReviewed)
-		v.SupplierType = strPtr(supplier)
-		v.ForkOriginURL = strPtr(fork)
 		versions = append(versions, v)
 	}
 	return versions, total, rows.Err()
@@ -77,14 +73,13 @@ func (r *OssVersionRepository) Search(ctx context.Context, f domrepo.OssVersionF
 
 // Get は ID でバージョンを取得する。
 func (r *OssVersionRepository) Get(ctx context.Context, id string) (*model.OssVersion, error) {
-	row := r.DB.QueryRowContext(ctx, `SELECT id, oss_id, version, release_date, license_expression_raw, license_concluded, purl, cpe_list, hash_sha256, modified, modification_description, review_status, last_reviewed_at, scope_status, supplier_type, fork_origin_url, created_at, updated_at FROM oss_versions WHERE id = ?`, id)
+	row := r.DB.QueryRowContext(ctx, `SELECT id, oss_id, version, release_date, license_expression_raw, license_concluded, purl, cpe_list, hash_sha256, review_status, last_reviewed_at, scope_status, created_at, updated_at FROM oss_versions WHERE id = ?`, id)
 	var v model.OssVersion
 	var releaseDate sql.NullTime
 	var licenseRaw, licenseConc, purl, hash sql.NullString
-	var modDesc, supplier, fork sql.NullString
 	var lastReviewed sql.NullTime
 	var cpeList pq.StringArray
-	if err := row.Scan(&v.ID, &v.OssID, &v.Version, &releaseDate, &licenseRaw, &licenseConc, &purl, &cpeList, &hash, &v.Modified, &modDesc, &v.ReviewStatus, &lastReviewed, &v.ScopeStatus, &supplier, &fork, &v.CreatedAt, &v.UpdatedAt); err != nil {
+	if err := row.Scan(&v.ID, &v.OssID, &v.Version, &releaseDate, &licenseRaw, &licenseConc, &purl, &cpeList, &hash, &v.ReviewStatus, &lastReviewed, &v.ScopeStatus, &v.CreatedAt, &v.UpdatedAt); err != nil {
 		return nil, err
 	}
 	v.ReleaseDate = timePtr(releaseDate)
@@ -93,18 +88,15 @@ func (r *OssVersionRepository) Get(ctx context.Context, id string) (*model.OssVe
 	v.Purl = strPtr(purl)
 	v.CpeList = []string(cpeList)
 	v.HashSha256 = strPtr(hash)
-	v.ModificationDescription = strPtr(modDesc)
 	v.LastReviewedAt = timePtr(lastReviewed)
-	v.SupplierType = strPtr(supplier)
-	v.ForkOriginURL = strPtr(fork)
 	return &v, nil
 }
 
 // Create は新しいバージョンを登録する。
 func (r *OssVersionRepository) Create(ctx context.Context, v *model.OssVersion) error {
 	_, err := r.DB.ExecContext(ctx,
-		`INSERT INTO oss_versions (id, oss_id, version, release_date, license_expression_raw, license_concluded, purl, cpe_list, hash_sha256, modified, modification_description, review_status, last_reviewed_at, scope_status, supplier_type, fork_origin_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		v.ID, v.OssID, v.Version, v.ReleaseDate, v.LicenseExpressionRaw, v.LicenseConcluded, v.Purl, pq.Array(v.CpeList), v.HashSha256, v.Modified, v.ModificationDescription, v.ReviewStatus, v.LastReviewedAt, v.ScopeStatus, v.SupplierType, v.ForkOriginURL, v.CreatedAt, v.UpdatedAt,
+		`INSERT INTO oss_versions (id, oss_id, version, release_date, license_expression_raw, license_concluded, purl, cpe_list, hash_sha256, review_status, last_reviewed_at, scope_status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		v.ID, v.OssID, v.Version, v.ReleaseDate, v.LicenseExpressionRaw, v.LicenseConcluded, v.Purl, pq.Array(v.CpeList), v.HashSha256, v.ReviewStatus, v.LastReviewedAt, v.ScopeStatus, v.CreatedAt, v.UpdatedAt,
 	)
 	return err
 }
@@ -112,8 +104,8 @@ func (r *OssVersionRepository) Create(ctx context.Context, v *model.OssVersion) 
 // Update は既存バージョンを更新する。
 func (r *OssVersionRepository) Update(ctx context.Context, v *model.OssVersion) error {
 	_, err := r.DB.ExecContext(ctx,
-		`UPDATE oss_versions SET release_date = ?, license_expression_raw = ?, license_concluded = ?, purl = ?, cpe_list = ?, hash_sha256 = ?, modified = ?, modification_description = ?, review_status = ?, last_reviewed_at = ?, scope_status = ?, supplier_type = ?, fork_origin_url = ?, updated_at = ? WHERE id = ?`,
-		v.ReleaseDate, v.LicenseExpressionRaw, v.LicenseConcluded, v.Purl, pq.Array(v.CpeList), v.HashSha256, v.Modified, v.ModificationDescription, v.ReviewStatus, v.LastReviewedAt, v.ScopeStatus, v.SupplierType, v.ForkOriginURL, v.UpdatedAt, v.ID,
+		`UPDATE oss_versions SET release_date = ?, license_expression_raw = ?, license_concluded = ?, purl = ?, cpe_list = ?, hash_sha256 = ?, review_status = ?, last_reviewed_at = ?, scope_status = ?, updated_at = ? WHERE id = ?`,
+		v.ReleaseDate, v.LicenseExpressionRaw, v.LicenseConcluded, v.Purl, pq.Array(v.CpeList), v.HashSha256, v.ReviewStatus, v.LastReviewedAt, v.ScopeStatus, v.UpdatedAt, v.ID,
 	)
 	return err
 }

@@ -12,14 +12,10 @@ type OssVersion struct {
 	LicenseConcluded        *string
 	Purl                    *string
 	CpeList                 []string
-	HashSha256              *string
-	Modified                bool
-	ModificationDescription *string
-	ReviewStatus            string
-	LastReviewedAt          *dbtime.DBTime
-	ScopeStatus             string
-	SupplierType            *string
-	ForkOriginURL           *string
-	CreatedAt               dbtime.DBTime
+	HashSha256     *string
+	ReviewStatus   string
+	LastReviewedAt *dbtime.DBTime
+	ScopeStatus    string
+	CreatedAt      dbtime.DBTime
 	UpdatedAt               dbtime.DBTime
 }

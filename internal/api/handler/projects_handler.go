@@ -60,6 +60,7 @@ func toProjectUsage(m model.ProjectUsage) gen.ProjectUsage {
 		ScopeStatus:      gen.ScopeStatus(m.ScopeStatus),
 		DirectDependency: m.DirectDependency,
 		AddedAt:          m.AddedAt.TimeValue(),
+		Modified:         m.Modified,
 	}
 	if m.InclusionNote != nil {
 		res.InclusionNote = m.InclusionNote
@@ -70,6 +71,16 @@ func toProjectUsage(m model.ProjectUsage) gen.ProjectUsage {
 	}
 	if m.EvaluatedBy != nil {
 		res.EvaluatedBy = m.EvaluatedBy
+	}
+	if m.ModificationDescription != nil {
+		res.ModificationDescription = m.ModificationDescription
+	}
+	if m.SupplierType != nil {
+		val := gen.SupplierType(*m.SupplierType)
+		res.SupplierType = &val
+	}
+	if m.ForkOriginURL != nil {
+		res.ForkOriginUrl = m.ForkOriginURL
 	}
 	return res
 }
@@ -296,16 +307,29 @@ func (h *Handler) CreateProjectUsage(ctx echo.Context, projectId openapi_types.U
 	if req.DirectDependency != nil {
 		direct = *req.DirectDependency
 	}
+	modified := false
+	if req.Modified != nil {
+		modified = *req.Modified
+	}
 	u := &model.ProjectUsage{
-		ID:               uuid.NewString(),
-		ProjectID:        projectId.String(),
-		OssID:            req.OssId.String(),
-		OssVersionID:     req.OssVersionId.String(),
-		UsageRole:        string(req.UsageRole),
-		DirectDependency: direct,
-		InclusionNote:    req.InclusionNote,
-		ScopeStatus:      scope,
-		AddedAt:          now,
+		ID:                      uuid.NewString(),
+		ProjectID:               projectId.String(),
+		OssID:                   req.OssId.String(),
+		OssVersionID:            req.OssVersionId.String(),
+		UsageRole:               string(req.UsageRole),
+		DirectDependency:        direct,
+		InclusionNote:           req.InclusionNote,
+		ScopeStatus:             scope,
+		AddedAt:                 now,
+		Modified:                modified,
+		ModificationDescription: req.ModificationDescription,
+	}
+	if req.SupplierType != nil {
+		val := string(*req.SupplierType)
+		u.SupplierType = &val
+	}
+	if req.ForkOriginUrl != nil {
+		u.ForkOriginURL = req.ForkOriginUrl
 	}
 	if err := h.ProjectUsageRepo.Create(ctx.Request().Context(), u); err != nil {
 		return err
@@ -348,6 +372,19 @@ func (h *Handler) UpdateProjectUsage(ctx echo.Context, projectId openapi_types.U
 	}
 	if req.ScopeStatus != nil {
 		u.ScopeStatus = string(*req.ScopeStatus)
+	}
+	if req.Modified != nil {
+		u.Modified = *req.Modified
+	}
+	if req.ModificationDescription != nil {
+		u.ModificationDescription = req.ModificationDescription
+	}
+	if req.SupplierType != nil {
+		val := string(*req.SupplierType)
+		u.SupplierType = &val
+	}
+	if req.ForkOriginUrl != nil {
+		u.ForkOriginURL = req.ForkOriginUrl
 	}
 
 	if err := h.ProjectUsageRepo.Update(ctx.Request().Context(), u); err != nil {

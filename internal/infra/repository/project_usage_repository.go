@@ -45,7 +45,7 @@ func (r *ProjectUsageRepository) Search(ctx context.Context, f domrepo.ProjectUs
 	}
 
 	offset := (f.Page - 1) * f.Size
-	listQuery := fmt.Sprintf(`SELECT id, project_id, oss_id, oss_version_id, usage_role, scope_status, inclusion_note, direct_dependency, added_at, evaluated_at, evaluated_by FROM project_usages %s ORDER BY added_at DESC LIMIT ? OFFSET ?`, whereSQL)
+	listQuery := fmt.Sprintf(`SELECT id, project_id, oss_id, oss_version_id, usage_role, scope_status, inclusion_note, direct_dependency, added_at, evaluated_at, evaluated_by, modified, modification_description, supplier_type, fork_origin_url FROM project_usages %s ORDER BY added_at DESC LIMIT ? OFFSET ?`, whereSQL)
 	argsWithLimit := append(args, f.Size, offset)
 	rows, err := r.DB.QueryContext(ctx, listQuery, argsWithLimit...)
 	if err != nil {
@@ -56,14 +56,17 @@ func (r *ProjectUsageRepository) Search(ctx context.Context, f domrepo.ProjectUs
 	var usages []model.ProjectUsage
 	for rows.Next() {
 		var u model.ProjectUsage
-		var note, evalBy sql.NullString
+		var note, evalBy, modDesc, supplier, fork sql.NullString
 		var evalAt sql.NullTime
-		if err := rows.Scan(&u.ID, &u.ProjectID, &u.OssID, &u.OssVersionID, &u.UsageRole, &u.ScopeStatus, &note, &u.DirectDependency, &u.AddedAt, &evalAt, &evalBy); err != nil {
+		if err := rows.Scan(&u.ID, &u.ProjectID, &u.OssID, &u.OssVersionID, &u.UsageRole, &u.ScopeStatus, &note, &u.DirectDependency, &u.AddedAt, &evalAt, &evalBy, &u.Modified, &modDesc, &supplier, &fork); err != nil {
 			return nil, 0, err
 		}
 		u.InclusionNote = strPtr(note)
 		u.EvaluatedAt = timePtr(evalAt)
 		u.EvaluatedBy = strPtr(evalBy)
+		u.ModificationDescription = strPtr(modDesc)
+		u.SupplierType = strPtr(supplier)
+		u.ForkOriginURL = strPtr(fork)
 		usages = append(usages, u)
 	}
 	return usages, total, rows.Err()
@@ -71,15 +74,15 @@ func (r *ProjectUsageRepository) Search(ctx context.Context, f domrepo.ProjectUs
 
 // Create は新しい利用情報を登録する。
 func (r *ProjectUsageRepository) Create(ctx context.Context, u *model.ProjectUsage) error {
-	query := `INSERT INTO project_usages (id, project_id, oss_id, oss_version_id, usage_role, scope_status, inclusion_note, direct_dependency, added_at, evaluated_at, evaluated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	_, err := r.DB.ExecContext(ctx, query, u.ID, u.ProjectID, u.OssID, u.OssVersionID, u.UsageRole, u.ScopeStatus, u.InclusionNote, u.DirectDependency, u.AddedAt, u.EvaluatedAt, u.EvaluatedBy)
+	query := `INSERT INTO project_usages (id, project_id, oss_id, oss_version_id, usage_role, scope_status, inclusion_note, direct_dependency, added_at, evaluated_at, evaluated_by, modified, modification_description, supplier_type, fork_origin_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	_, err := r.DB.ExecContext(ctx, query, u.ID, u.ProjectID, u.OssID, u.OssVersionID, u.UsageRole, u.ScopeStatus, u.InclusionNote, u.DirectDependency, u.AddedAt, u.EvaluatedAt, u.EvaluatedBy, u.Modified, u.ModificationDescription, u.SupplierType, u.ForkOriginURL)
 	return err
 }
 
 // Update は既存の利用情報を更新する。
 func (r *ProjectUsageRepository) Update(ctx context.Context, u *model.ProjectUsage) error {
-	query := `UPDATE project_usages SET oss_version_id = ?, usage_role = ?, direct_dependency = ?, inclusion_note = ?, scope_status = ?, evaluated_at = ?, evaluated_by = ? WHERE id = ?`
-	_, err := r.DB.ExecContext(ctx, query, u.OssVersionID, u.UsageRole, u.DirectDependency, u.InclusionNote, u.ScopeStatus, u.EvaluatedAt, u.EvaluatedBy, u.ID)
+	query := `UPDATE project_usages SET oss_version_id = ?, usage_role = ?, direct_dependency = ?, inclusion_note = ?, scope_status = ?, evaluated_at = ?, evaluated_by = ?, modified = ?, modification_description = ?, supplier_type = ?, fork_origin_url = ? WHERE id = ?`
+	_, err := r.DB.ExecContext(ctx, query, u.OssVersionID, u.UsageRole, u.DirectDependency, u.InclusionNote, u.ScopeStatus, u.EvaluatedAt, u.EvaluatedBy, u.Modified, u.ModificationDescription, u.SupplierType, u.ForkOriginURL, u.ID)
 	return err
 }
 
