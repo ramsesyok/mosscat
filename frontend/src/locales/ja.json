@@ -50,6 +50,7 @@
       "title": "バージョン一覧",
       "version": "バージョン",
       "releaseDate": "リリース日",
+      "license": "ライセンス",
       "close": "閉じる",
       "add": "バージョン追加"
     },
