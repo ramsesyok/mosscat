@@ -8,7 +8,15 @@
         <v-form ref="formRef">
           <v-text-field v-model="form.version" :disabled="!isNew" label="Version" required />
           <v-text-field v-model="form.releaseDate" label="Release Date" type="date" />
-          <v-text-field v-model="form.licenseExpressionRaw" label="License Expression" />
+          <v-select
+            v-model="form.licenseExpressionRaw"
+            clearable
+            item-props
+            item-title="title"
+            item-value="value"
+            :items="licenseOptions"
+            label="License"
+          />
           <v-text-field v-model="form.purl" label="PURL" :rules="[urlRule]" />
           <v-text-field v-model="form.cpeListInput" label="CPE List" />
           <v-text-field v-model="form.hashSha256" label="SHA256" />
@@ -45,7 +53,7 @@
     OssVersionUpdateRequest,
     SupplierType,
   } from '@/api'
-  import { computed, reactive, ref, watch } from 'vue'
+  import { computed, onMounted, reactive, ref, watch } from 'vue'
   import { useI18n } from 'vue-i18n'
   import { OssVersionsService } from '@/api'
 
@@ -104,6 +112,22 @@
   })
 
   const supplierTypeOptions: SupplierType[] = ['UPSTREAM', 'INTERNAL_FORK', 'REPACKAGE']
+
+  const licenseOptions = ref<{ title: string, value: string, subtitle: string }[]>([])
+
+  onMounted(async () => {
+    try {
+      const res = await fetch('/licenses.json')
+      const data: Array<{ key: string, name: string, spdx_id: string, url: string }> = await res.json()
+      licenseOptions.value = data.map(l => ({
+        title: l.key,
+        value: l.spdx_id,
+        subtitle: l.name,
+      }))
+    } catch (error) {
+      console.error(error)
+    }
+  })
 
   const formRef = ref()
   const saving = ref(false)
