@@ -32,6 +32,25 @@
       "description": "Description",
       "save": "Save",
       "cancel": "Cancel"
+    },
+    "usageList": {
+      "title": "OSS Usage List",
+      "oss": "OSS ID",
+      "version": "Version ID",
+      "role": "Role",
+      "scope": "Scope",
+      "modified": "Modified",
+      "modifiedYes": "Yes",
+      "modifiedNo": "No",
+      "actions": "Actions",
+      "close": "Close"
+    },
+    "usage": {
+      "modificationInfo": "Modification Info",
+      "modified": "Modified",
+      "modificationDescription": "Modification Description",
+      "supplierType": "Supplier Type",
+      "forkOriginUrl": "Fork Origin URL"
     }
   },
   "oss": {

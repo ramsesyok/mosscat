@@ -98,11 +98,27 @@
     "registerUsage": "利用登録",
     "usageList": {
       "title": "利用OSS一覧",
-      "oss": "OSS ID",
+      "oss": "名称",
       "version": "バージョンID",
       "role": "利用形態",
       "scope": "スコープ",
+      "modified": "変更",
+      "modifiedYes": "有",
+      "modifiedNo": "無",
+      "actions": "操作",
       "close": "閉じる"
+    },
+    "usage": {
+      "modificationInfo": "変更情報",
+      "modified": "変更有無",
+      "modificationDescription": "変更内容",
+      "supplierType": "供給者種別",
+      "forkOriginUrl": "フォーク元URL"
+    },
+    "usageEdit": {
+      "title": "利用情報編集",
+      "save": "保存",
+      "cancel": "キャンセル"
     }
   },
   "settings": {
