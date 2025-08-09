@@ -11,6 +11,12 @@
   },
   "project": {
     "table": {
+      "code": "Code",
+      "name": "Name",
+      "department": "Department",
+      "deliveryDate": "Delivery Date",
+      "manager": "Manager",
+      "actions": "Actions",
       "add": "Add Project"
     }
   },
