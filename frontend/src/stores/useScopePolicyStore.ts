@@ -14,7 +14,7 @@ export const useScopePolicyStore = defineStore('scopePolicy', {
       try {
         this.policy = await ScopePolicyService.getScopePolicy()
       } catch (error) {
-        throw error
+        console.error(error)
       } finally {
         this.loading = false
       }

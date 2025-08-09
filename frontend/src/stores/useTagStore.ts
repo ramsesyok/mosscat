@@ -14,7 +14,7 @@ export const useTagStore = defineStore('tag', {
       try {
         this.items = await TagsService.listTags()
       } catch (error) {
-        throw error
+        console.error(error)
       } finally {
         this.loading = false
       }

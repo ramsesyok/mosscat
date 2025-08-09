@@ -1,4 +1,3 @@
-/* eslint-disable no-useless-catch */
 import type {
   Project,
   ProjectCreateRequest,
@@ -29,7 +28,7 @@ export const useProjectStore = defineStore('project', {
         this.items = res.items ?? []
         this.total = res.total ?? 0
       } catch (error) {
-        throw error
+        console.error(error)
       } finally {
         this.loading = false
       }

@@ -101,8 +101,12 @@
   const tagStore = useTagStore()
   const { items: tags } = storeToRefs(tagStore)
 
-  onMounted(() => {
-    tagStore.fetch()
+  onMounted(async () => {
+    try {
+      await tagStore.fetch()
+    } catch (error) {
+      console.error(error)
+    }
   })
 
   const modelOpen = computed({
