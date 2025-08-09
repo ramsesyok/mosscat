@@ -15,6 +15,7 @@ import (
 	gen "github.com/ramsesyok/mosscat/internal/api/gen"
 	"github.com/ramsesyok/mosscat/internal/domain/model"
 	domrepo "github.com/ramsesyok/mosscat/internal/domain/repository"
+	"github.com/ramsesyok/mosscat/pkg/auth"
 )
 
 func toUser(m model.User) gen.User {
@@ -107,7 +108,11 @@ func (h *Handler) CreateUser(ctx echo.Context) error {
 		UpdatedAt:    now,
 	}
 	if req.Password != nil {
-		u.PasswordHash = *req.Password
+		hash, err := auth.Hash(*req.Password)
+		if err != nil {
+			return err
+		}
+		u.PasswordHash = hash
 	}
 	if err := h.UserRepo.Create(ctx.Request().Context(), u); err != nil {
 		return err
@@ -150,7 +155,11 @@ func (h *Handler) UpdateUser(ctx echo.Context, userId openapi_types.UUID) error 
 		u.Email = &v
 	}
 	if req.Password != nil {
-		u.PasswordHash = *req.Password
+		hash, err := auth.Hash(*req.Password)
+		if err != nil {
+			return err
+		}
+		u.PasswordHash = hash
 	}
 	if req.Roles != nil {
 		roles := make([]string, len(*req.Roles))
