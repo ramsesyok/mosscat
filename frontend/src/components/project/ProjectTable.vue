@@ -18,12 +18,12 @@
     >
       <template #headers>
         <tr>
-          <th class="text-left">Code</th>
-          <th class="text-left">Name</th>
-          <th class="text-left">Department</th>
-          <th class="text-left">Delivery Date</th>
-          <th class="text-left">Manager</th>
-          <th class="text-left">Actions</th>
+          <th class="text-left">{{ $t('project.table.code') }}</th>
+          <th class="text-left">{{ $t('project.table.name') }}</th>
+          <th class="text-left">{{ $t('project.table.department') }}</th>
+          <th class="text-left">{{ $t('project.table.deliveryDate') }}</th>
+          <th class="text-left">{{ $t('project.table.manager') }}</th>
+          <th class="text-left">{{ $t('project.table.actions') }}</th>
         </tr>
       </template>
       <template #item="{ item }">

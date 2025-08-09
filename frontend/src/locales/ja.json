@@ -69,7 +69,10 @@
     "table": {
       "code": "コード",
       "name": "名称",
+      "department": "部署",
       "deliveryDate": "納品日",
+      "manager": "担当者",
+      "actions": "操作",
       "ossUsageCount": "OSS数",
       "add": "プロジェクトの追加"
     },
