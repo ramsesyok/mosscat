@@ -2,7 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { SupplierType } from './SupplierType';
 /**
  * バージョン作成リクエスト
  */
@@ -31,21 +30,5 @@ export type OssVersionCreateRequest = {
      * アーカイブ SHA-256
      */
     hashSha256?: string | null;
-    /**
-     * 社内改変有無
-     */
-    modified?: boolean;
-    /**
-     * 改変概要
-     */
-    modificationDescription?: string | null;
-    /**
-     * 供給形態
-     */
-    supplierType?: SupplierType | null;
-    /**
-     * フォーク元 URL
-     */
-    forkOriginUrl?: string | null;
 };
 

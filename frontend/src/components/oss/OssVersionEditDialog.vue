@@ -20,19 +20,6 @@
           <v-text-field v-model="form.purl" label="PURL" :rules="[urlRule]" />
           <v-text-field v-model="form.cpeListInput" label="CPE List" />
           <v-text-field v-model="form.hashSha256" label="SHA256" />
-          <v-checkbox v-model="form.modified" label="Modified" />
-          <v-text-field v-model="form.modificationDescription" label="Modification Description" />
-          <v-select
-            v-model="form.supplierType"
-            clearable
-            :items="supplierTypeOptions"
-            label="Supplier Type"
-          />
-          <v-text-field
-            v-model="form.forkOriginUrl"
-            label="Fork Origin URL"
-            :rules="[urlRule]"
-          />
         </v-form>
       </v-card-text>
       <v-card-actions>
@@ -51,7 +38,6 @@
     OssVersion,
     OssVersionCreateRequest,
     OssVersionUpdateRequest,
-    SupplierType,
   } from '@/api'
   import { computed, onMounted, reactive, ref, watch } from 'vue'
   import { useI18n } from 'vue-i18n'
@@ -92,10 +78,6 @@
     purl?: string
     cpeListInput: string
     hashSha256?: string
-    modified: boolean
-    modificationDescription?: string
-    supplierType?: SupplierType
-    forkOriginUrl?: string
   }
 
   const form = reactive<Form>({
@@ -105,13 +87,7 @@
     purl: undefined,
     cpeListInput: '',
     hashSha256: undefined,
-    modified: false,
-    modificationDescription: undefined,
-    supplierType: undefined,
-    forkOriginUrl: undefined,
   })
-
-  const supplierTypeOptions: SupplierType[] = ['UPSTREAM', 'INTERNAL_FORK', 'REPACKAGE']
 
   const licenseOptions = ref<{ title: string, value: string, subtitle: string }[]>([])
 
@@ -169,10 +145,6 @@
       form.purl = detail.value.purl ?? undefined
       form.cpeListInput = (detail.value.cpeList ?? []).join(', ')
       form.hashSha256 = detail.value.hashSha256 ?? undefined
-      form.modified = detail.value.modified ?? false
-      form.modificationDescription = detail.value.modificationDescription ?? undefined
-      form.supplierType = detail.value.supplierType ?? undefined
-      form.forkOriginUrl = detail.value.forkOriginUrl ?? undefined
     } catch (error) {
       console.error(error)
     }
@@ -185,10 +157,6 @@
     form.purl = undefined
     form.cpeListInput = ''
     form.hashSha256 = undefined
-    form.modified = false
-    form.modificationDescription = undefined
-    form.supplierType = undefined
-    form.forkOriginUrl = undefined
   }
 
   function close () {
@@ -212,10 +180,6 @@
           purl: form.purl,
           cpeList,
           hashSha256: form.hashSha256,
-          modified: form.modified,
-          modificationDescription: form.modificationDescription,
-          supplierType: form.supplierType,
-          forkOriginUrl: form.forkOriginUrl,
         }
         await OssVersionsService.updateOssVersion({
           ossId: props.ossId,
@@ -230,10 +194,6 @@
           purl: form.purl,
           cpeList,
           hashSha256: form.hashSha256,
-          modified: form.modified,
-          modificationDescription: form.modificationDescription,
-          supplierType: form.supplierType,
-          forkOriginUrl: form.forkOriginUrl,
         }
         await OssVersionsService.createOssVersion({
           ossId: props.ossId,

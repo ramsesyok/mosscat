@@ -4,7 +4,6 @@
 /* eslint-disable */
 import type { ReviewStatus } from './ReviewStatus';
 import type { ScopeStatus } from './ScopeStatus';
-import type { SupplierType } from './SupplierType';
 /**
  * 個別バージョン情報
  */
@@ -46,14 +45,6 @@ export type OssVersion = {
      */
     hashSha256?: string | null;
     /**
-     * 社内改変有無
-     */
-    modified: boolean;
-    /**
-     * 改変内容概要
-     */
-    modificationDescription?: string | null;
-    /**
      * レビュー状態
      */
     reviewStatus: ReviewStatus;
@@ -65,14 +56,6 @@ export type OssVersion = {
      * バージョン単位の推奨スコープ判定（参考）
      */
     scopeStatus: ScopeStatus;
-    /**
-     * 供給形態
-     */
-    supplierType?: SupplierType | null;
-    /**
-     * フォーク元 URL (INTERNAL_FORK の場合)
-     */
-    forkOriginUrl?: string | null;
     /**
      * 作成日時
      */

@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ScopeStatus } from './ScopeStatus';
+import type { SupplierType } from './SupplierType';
 import type { UsageRole } from './UsageRole';
 /**
  * プロジェクトにおける特定 OSS バージョンの利用レコード
@@ -52,5 +53,21 @@ export type ProjectUsage = {
      * 判定実施ユーザ
      */
     evaluatedBy?: string | null;
+    /**
+     * 社内改変有無
+     */
+    modified: boolean;
+    /**
+     * 改変内容概要
+     */
+    modificationDescription?: string | null;
+    /**
+     * 供給形態
+     */
+    supplierType?: SupplierType | null;
+    /**
+     * フォーク元 URL (INTERNAL_FORK の場合)
+     */
+    forkOriginUrl?: string | null;
 };
 

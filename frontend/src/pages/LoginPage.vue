@@ -34,9 +34,9 @@
   import { ref } from 'vue'
   import { useI18n } from 'vue-i18n'
   import { useRouter } from 'vue-router'
+  import { useToast } from '@/composables/useToast'
   import { useAuthStore } from '@/stores/auth/useAuthStore'
   import { RouteName } from '@/types/routes'
-  import { useToast } from '@/composables/useToast'
 
   const username = ref('')
   const password = ref('')

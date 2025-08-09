@@ -34,6 +34,37 @@
             </tr>
           </template>
         </v-data-table>
+
+        <v-divider class="my-4" />
+
+        <v-form ref="formRef">
+          <h3 class="mb-3">{{ t('project.usage.modificationInfo') }}</h3>
+          <v-switch
+            v-model="form.modified"
+            :label="t('project.usage.modified')"
+          />
+          <v-textarea
+            v-if="form.modified"
+            v-model="form.modificationDescription"
+            :label="t('project.usage.modificationDescription')"
+            rows="3"
+          />
+          <v-select
+            v-if="form.modified"
+            v-model="form.supplierType"
+            clearable
+            item-title="title"
+            item-value="value"
+            :items="supplierTypeOptions"
+            :label="t('project.usage.supplierType')"
+          />
+          <v-text-field
+            v-if="form.modified"
+            v-model="form.forkOriginUrl"
+            :label="t('project.usage.forkOriginUrl')"
+            :rules="[urlRule]"
+          />
+        </v-form>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
@@ -49,8 +80,8 @@
 </template>
 
 <script setup lang="ts">
-  import type { Project } from '@/api'
-  import { computed, ref, watch } from 'vue'
+  import type { Project, SupplierType } from '@/api'
+  import { computed, reactive, ref, watch } from 'vue'
   import { useI18n } from 'vue-i18n'
   import { ProjectUsagesService } from '@/api'
   import { useProjectStore } from '@/stores/useProjectStore'
@@ -66,28 +97,74 @@
   const { t } = useI18n()
   const store = useProjectStore()
 
+  const urlRule = (v?: string) => {
+    if (!v) return true
+    try {
+      new URL(v)
+      return true
+    } catch {
+      return t('error.invalidUrl')
+    }
+  }
+
   const modelOpen = computed({
     get: () => props.open,
     set: (val: boolean) => emit('update:open', val),
   })
 
   const selected = ref<Project>()
+  const formRef = ref()
+
+  interface Form {
+    modified: boolean
+    modificationDescription?: string
+    supplierType?: SupplierType
+    forkOriginUrl?: string
+  }
+
+  const form = reactive<Form>({
+    modified: false,
+    modificationDescription: undefined,
+    supplierType: undefined,
+    forkOriginUrl: undefined,
+  })
+
+  const supplierTypeOptions = ref<{ title: string, value: SupplierType }[]>([
+    { title: 'UPSTREAM', value: 'UPSTREAM' },
+    { title: 'INTERNAL_FORK', value: 'INTERNAL_FORK' },
+    { title: 'REPACKAGE', value: 'REPACKAGE' },
+  ])
 
   watch(modelOpen, val => {
     if (val) {
       store.fetchList()
       selected.value = undefined
+      resetForm()
     }
   })
 
+  function resetForm () {
+    form.modified = false
+    form.modificationDescription = undefined
+    form.supplierType = undefined
+    form.forkOriginUrl = undefined
+  }
+
   async function registerUsage () {
     if (!selected.value) return
+    const result = await formRef.value?.validate()
+    if (!result?.valid) return
+
     await ProjectUsagesService.createProjectUsage({
       projectId: selected.value.id,
       requestBody: {
         ossId: props.ossId,
         ossVersionId: props.ossVersionId,
         usageRole: 'RUNTIME_REQUIRED',
+        modified: form.modified,
+        modificationDescription: form.modified ? form.modificationDescription : undefined,
+        supplierType: form.modified ? form.supplierType : undefined,
+        forkOriginUrl: form.modified ? form.forkOriginUrl : undefined,
       },
     })
     emit('added')

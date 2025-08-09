@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { SupplierType } from './SupplierType';
 import type { UsageRole } from './UsageRole';
 /**
  * プロジェクト利用作成リクエスト
@@ -27,5 +28,21 @@ export type ProjectUsageCreateRequest = {
      * 初期理由メモ
      */
     inclusionNote?: string | null;
+    /**
+     * 社内改変有無
+     */
+    modified?: boolean;
+    /**
+     * 改変概要
+     */
+    modificationDescription?: string | null;
+    /**
+     * 供給形態
+     */
+    supplierType?: SupplierType | null;
+    /**
+     * フォーク元 URL
+     */
+    forkOriginUrl?: string | null;
 };
 
