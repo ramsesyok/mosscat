@@ -67,5 +67,29 @@
   "error": {
     "invalidUrl": "Invalid URL",
     "deleteFailed": "Failed to delete"
+  },
+  "user": {
+    "listTitle": "User Management",
+    "table": {
+      "add": "Add User",
+      "username": "Username",
+      "displayName": "Display Name",
+      "email": "Email",
+      "roles": "Roles",
+      "active": "Active",
+      "actions": "Actions"
+    },
+    "detail": {
+      "titleNew": "Add User",
+      "titleEdit": "Edit User",
+      "username": "Username",
+      "displayName": "Display Name",
+      "email": "Email",
+      "password": "Password",
+      "roles": "Roles",
+      "active": "Active",
+      "save": "Save",
+      "cancel": "Cancel"
+    }
   }
 }

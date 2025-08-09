@@ -14,7 +14,9 @@
 
 <script setup lang="ts">
   import type { RouteLocationRaw } from 'vue-router'
+  import { computed } from 'vue'
   import { useI18n } from 'vue-i18n'
+  import { useAuthStore } from '@/stores/auth/useAuthStore'
 
   interface NavItem {
     titleKey: string
@@ -25,12 +27,19 @@
   const emit = defineEmits<{ (e: 'navigate'): void }>()
 
   const { t } = useI18n()
+  const auth = useAuthStore()
 
-  const items: NavItem[] = [
-    { titleKey: 'oss.listTitle', icon: 'mdi-package-variant', to: '/' },
-    { titleKey: 'project.listTitle', icon: 'mdi-briefcase', to: '/projects' },
-    { titleKey: 'settings.title', icon: 'mdi-cog', to: '/settings' },
-  ]
+  const items = computed<NavItem[]>(() => {
+    const list: NavItem[] = [
+      { titleKey: 'oss.listTitle', icon: 'mdi-package-variant', to: '/' },
+      { titleKey: 'project.listTitle', icon: 'mdi-briefcase', to: '/projects' },
+    ]
+    if (auth.roles.includes('ADMIN')) {
+      list.push({ titleKey: 'user.listTitle', icon: 'mdi-account-multiple', to: '/users' })
+    }
+    list.push({ titleKey: 'settings.title', icon: 'mdi-cog', to: '/settings' })
+    return list
+  })
 
   function onNavigate () {
     emit('navigate')

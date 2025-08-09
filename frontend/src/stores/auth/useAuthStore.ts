@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
-import { AuthService, OpenAPI } from '@/api'
+import { AuthService, OpenAPI, type Role, UsersService } from '@/api'
 
 interface AuthState {
   token: string
+  roles: Role[]
 }
 
 const storedToken = typeof localStorage === 'undefined' ? '' : localStorage.getItem('jwtToken') || ''
@@ -13,6 +14,7 @@ if (storedToken) {
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     token: storedToken,
+    roles: [],
   }),
   actions: {
     async login (username: string, password: string) {
@@ -22,6 +24,18 @@ export const useAuthStore = defineStore('auth', {
       this.token = res.accessToken
       OpenAPI.TOKEN = res.accessToken
       localStorage.setItem('jwtToken', res.accessToken)
+      await this.fetchCurrentUser()
+    },
+    async fetchCurrentUser () {
+      if (!this.token) {
+        return
+      }
+      try {
+        const user = await UsersService.getCurrentUser()
+        this.roles = user.roles
+      } catch (error) {
+        console.error(error)
+      }
     },
     async logout () {
       try {
@@ -30,6 +44,7 @@ export const useAuthStore = defineStore('auth', {
         // ignore logout errors
       }
       this.token = ''
+      this.roles = []
       OpenAPI.TOKEN = undefined
       localStorage.removeItem('jwtToken')
     },

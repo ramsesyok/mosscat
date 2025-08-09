@@ -143,5 +143,29 @@
     "password": "パスワード",
     "submit": "ログイン",
     "failed": "ログインに失敗しました"
+  },
+  "user": {
+    "listTitle": "ユーザ管理",
+    "table": {
+      "add": "ユーザ追加",
+      "username": "ユーザ名",
+      "displayName": "表示名",
+      "email": "メールアドレス",
+      "roles": "ロール",
+      "active": "有効",
+      "actions": "操作"
+    },
+    "detail": {
+      "titleNew": "ユーザ作成",
+      "titleEdit": "ユーザ編集",
+      "username": "ユーザ名",
+      "displayName": "表示名",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "roles": "ロール",
+      "active": "有効",
+      "save": "保存",
+      "cancel": "キャンセル"
+    }
   }
 }
