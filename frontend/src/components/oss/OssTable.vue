@@ -20,10 +20,10 @@
           <th class="text-left">{{ $t('oss.table.name') }}</th>
           <th class="text-left" style="width: 25%">{{ $t('oss.table.homepage') }}</th>
           <th class="text-left" style="width: 25%">{{ $t('oss.table.repository') }}</th>
-          <th class="text-left" style="width: 10ch">{{ $t('oss.table.primaryLanguage') }}</th>
-          <th class="text-left" style="width: 12ch">{{ $t('oss.table.layers') }}</th>
+          <th class="text-left" style="width: auto">{{ $t('oss.table.primaryLanguage') }}</th>
+          <th class="text-left" style="width: auto">{{ $t('oss.table.layers') }}</th>
           <th class="text-left" style="width: 20%">{{ $t('oss.table.tags') }}</th>
-          <th class="text-left" style="width: 120px">{{ $t('oss.table.actions') }}</th>
+          <th class="text-left" style="width: auto">{{ $t('oss.table.actions') }}</th>
         </tr>
       </template>
       <template #item="{ item }">
@@ -45,8 +45,8 @@
               target="_blank"
             >{{ item.repositoryUrl }}</a>
           </td>
-          <td style="width: 10ch">{{ item.primaryLanguage }}</td>
-          <td style="width: 12ch">{{ (item.layers || []).join(', ') }}</td>
+          <td style="width: auto">{{ item.primaryLanguage }}</td>
+          <td style="width: auto">{{ (item.layers || []).join(', ') }}</td>
           <td style="width: 20%">
             <v-chip
               v-for="tag in item.tags"
@@ -56,7 +56,7 @@
               variant="tonal"
             >{{ tag.name }}</v-chip>
           </td>
-          <td class="text-right" style="width: 120px">
+          <td class="text-right" style="width: auto">
             <v-icon
               class="mr-2"
               size="small"
