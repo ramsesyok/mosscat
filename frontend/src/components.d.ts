@@ -28,5 +28,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     ScopePolicyForm: typeof import('./components/settings/ScopePolicyForm.vue')['default']
     TagManager: typeof import('./components/settings/TagManager.vue')['default']
+    UserDetailDialog: typeof import('./components/user/UserDetailDialog.vue')['default']
+    UserTable: typeof import('./components/user/UserTable.vue')['default']
   }
 }
