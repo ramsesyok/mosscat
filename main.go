@@ -70,6 +70,9 @@ func runServer(host, port, dsn string, origins []string) error {
 			},
 		},
 	}))
+	// 静的ファイルの配信設定（APIルートより先に設定）
+	e.Static("/", "dist")
+
 	apirouter.RegisterRoutes(e, &h)
 	return e.Start(net.JoinHostPort(host, port))
 }
