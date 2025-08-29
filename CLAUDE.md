@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Communication Language
+
+**IMPORTANT: Always respond in Japanese (日本語) when working in this repository.** All explanations, error messages, and communication should be in Japanese to match the project's primary language and documentation.
+
 ## Project Overview
 
 Mosscat is an OSS (Open Source Software) management system for internal company use, built as a full-stack application with Go backend and Vue.js frontend. It manages OSS components, versions, projects, and usage tracking with audit logging capabilities.
@@ -36,6 +40,9 @@ go run .
 # Build binary
 go build -o mosscat.exe
 
+# Generate API handlers from OpenAPI spec
+go generate
+
 # Run tests
 go test ./...
 
@@ -65,6 +72,9 @@ npm run lint
 
 # Generate API client from OpenAPI spec
 npm run generate
+
+# Windows users can also use
+scripts/generate-client.bat
 ```
 
 ### Testing
@@ -72,7 +82,7 @@ npm run generate
 # Install Python test dependencies
 pip install -r requirements.txt
 
-# Run integration tests (starts server automatically)
+# Run integration tests using Tavern (starts server automatically)
 pytest tests/
 ```
 
