@@ -50,7 +50,6 @@ stages:
         id: "{version_id}"
         ossId: "{oss_id}"
         version: "1.2.3"
-        modified: false
         reviewStatus: draft
         scopeStatus: IN_SCOPE
         createdAt: !anystr
@@ -145,7 +144,6 @@ stages:
 ---
 
 test_name: "get oss version not found"
-marks: [xfail]
 
 stages:
   - name: get non-existent version

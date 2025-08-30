@@ -61,17 +61,21 @@ func runServer(host, port, dsn string, origins []string) error {
 	e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
 		AllowOrigins: origins,
 	}))
+	
+	// 静的ファイルの配信設定
+	e.Static("/", "dist")
+
+	// APIグループを作成してOpenAPI検証を適用
+	apiGroup := e.Group("/api")
 	// OASテンプレートで指定したスキーマによる検証を行う
 	// 認証は別ミドルウェアで行うため、バリデータ側ではセキュリティチェックをスキップする
-	e.Use(middleware.OapiRequestValidatorWithOptions(swagger, &middleware.Options{
+	apiGroup.Use(middleware.OapiRequestValidatorWithOptions(swagger, &middleware.Options{
 		Options: openapi3filter.Options{
 			AuthenticationFunc: func(ctx context.Context, _ *openapi3filter.AuthenticationInput) error {
 				return nil
 			},
 		},
 	}))
-	// 静的ファイルの配信設定（APIルートより先に設定）
-	e.Static("/", "dist")
 
 	apirouter.RegisterRoutes(e, &h)
 	return e.Start(net.JoinHostPort(host, port))

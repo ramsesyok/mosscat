@@ -126,7 +126,7 @@ func TestGetOssVersion_NotFound(t *testing.T) {
 	e := setupEcho(h)
 
 	vid := uuid.New()
-	query := regexp.QuoteMeta("SELECT id, oss_id, version, release_date, license_expression_raw, license_concluded, purl, cpe_list, hash_sha256, modified, modification_description, review_status, last_reviewed_at, scope_status, supplier_type, fork_origin_url, created_at, updated_at FROM oss_versions WHERE id = ?")
+	query := regexp.QuoteMeta("SELECT id, oss_id, version, release_date, license_expression_raw, license_concluded, purl, cpe_list, hash_sha256, review_status, last_reviewed_at, scope_status, created_at, updated_at FROM oss_versions WHERE id = ?")
 	mock.ExpectQuery(query).WithArgs(vid.String()).WillReturnError(sql.ErrNoRows)
 
 	req := httptest.NewRequest(http.MethodGet, "/oss/"+uuid.New().String()+"/versions/"+vid.String(), nil)
@@ -149,9 +149,9 @@ func TestGetOssVersion_OK(t *testing.T) {
 	vid := uuid.New()
 	oid := uuid.New()
 	now := time.Now()
-	query := regexp.QuoteMeta("SELECT id, oss_id, version, release_date, license_expression_raw, license_concluded, purl, cpe_list, hash_sha256, modified, modification_description, review_status, last_reviewed_at, scope_status, supplier_type, fork_origin_url, created_at, updated_at FROM oss_versions WHERE id = ?")
-	mockRows := sqlmock.NewRows([]string{"id", "oss_id", "version", "release_date", "license_expression_raw", "license_concluded", "purl", "cpe_list", "hash_sha256", "modified", "modification_description", "review_status", "last_reviewed_at", "scope_status", "supplier_type", "fork_origin_url", "created_at", "updated_at"}).
-		AddRow(vid.String(), oid.String(), "1.0.0", now, nil, nil, nil, pq.StringArray{}, nil, false, nil, "draft", nil, "IN_SCOPE", nil, nil, now, now)
+	query := regexp.QuoteMeta("SELECT id, oss_id, version, release_date, license_expression_raw, license_concluded, purl, cpe_list, hash_sha256, review_status, last_reviewed_at, scope_status, created_at, updated_at FROM oss_versions WHERE id = ?")
+	mockRows := sqlmock.NewRows([]string{"id", "oss_id", "version", "release_date", "license_expression_raw", "license_concluded", "purl", "cpe_list", "hash_sha256", "review_status", "last_reviewed_at", "scope_status", "created_at", "updated_at"}).
+		AddRow(vid.String(), oid.String(), "1.0.0", now, nil, nil, nil, pq.StringArray{}, nil, "draft", nil, "IN_SCOPE", now, now)
 	mock.ExpectQuery(query).WithArgs(vid.String()).WillReturnRows(mockRows)
 
 	req := httptest.NewRequest(http.MethodGet, "/oss/"+oid.String()+"/versions/"+vid.String(), nil)

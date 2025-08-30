@@ -221,9 +221,9 @@ func TestListProjectUsages(t *testing.T) {
 	pid := uuid.NewString()
 	countQuery := regexp.QuoteMeta("SELECT COUNT(*) FROM project_usages WHERE project_id = ?")
 	mock.ExpectQuery(countQuery).WithArgs(pid).WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
-	listQuery := regexp.QuoteMeta("SELECT id, project_id, oss_id, oss_version_id, usage_role, scope_status, inclusion_note, direct_dependency, added_at, evaluated_at, evaluated_by FROM project_usages WHERE project_id = ? ORDER BY added_at DESC LIMIT ? OFFSET ?")
+	listQuery := regexp.QuoteMeta("SELECT id, project_id, oss_id, oss_version_id, usage_role, scope_status, inclusion_note, direct_dependency, added_at, evaluated_at, evaluated_by, modified, modification_description, supplier_type, fork_origin_url FROM project_usages WHERE project_id = ? ORDER BY added_at DESC LIMIT ? OFFSET ?")
 	now := dbtime.DBTime{Time: time.Now()}
-	mock.ExpectQuery(listQuery).WithArgs(pid, 50, 0).WillReturnRows(sqlmock.NewRows([]string{"id", "project_id", "oss_id", "oss_version_id", "usage_role", "scope_status", "inclusion_note", "direct_dependency", "added_at", "evaluated_at", "evaluated_by"}).AddRow(uuid.NewString(), pid, uuid.NewString(), uuid.NewString(), "RUNTIME_REQUIRED", "IN_SCOPE", nil, true, now, nil, nil))
+	mock.ExpectQuery(listQuery).WithArgs(pid, 50, 0).WillReturnRows(sqlmock.NewRows([]string{"id", "project_id", "oss_id", "oss_version_id", "usage_role", "scope_status", "inclusion_note", "direct_dependency", "added_at", "evaluated_at", "evaluated_by", "modified", "modification_description", "supplier_type", "fork_origin_url"}).AddRow(uuid.NewString(), pid, uuid.NewString(), uuid.NewString(), "RUNTIME_REQUIRED", "IN_SCOPE", nil, true, now, nil, nil, false, nil, nil, nil))
 
 	req := httptest.NewRequest(http.MethodGet, "/projects/"+pid+"/usages", nil)
 	rec := httptest.NewRecorder()
@@ -251,7 +251,7 @@ func TestCreateProjectUsage(t *testing.T) {
 	policyQuery := regexp.QuoteMeta("SELECT id, runtime_required_default_in_scope, server_env_included, auto_mark_forks_in_scope, updated_at, updated_by FROM scope_policies LIMIT 1")
 	now := dbtime.DBTime{Time: time.Now()}
 	mock.ExpectQuery(policyQuery).WillReturnRows(sqlmock.NewRows([]string{"id", "runtime_required_default_in_scope", "server_env_included", "auto_mark_forks_in_scope", "updated_at", "updated_by"}).AddRow(uuid.NewString(), true, false, false, now, "user"))
-	createQuery := regexp.QuoteMeta("INSERT INTO project_usages (id, project_id, oss_id, oss_version_id, usage_role, scope_status, inclusion_note, direct_dependency, added_at, evaluated_at, evaluated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	createQuery := regexp.QuoteMeta("INSERT INTO project_usages (id, project_id, oss_id, oss_version_id, usage_role, scope_status, inclusion_note, direct_dependency, added_at, evaluated_at, evaluated_by, modified, modification_description, supplier_type, fork_origin_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 	mock.ExpectExec(createQuery).WillReturnResult(sqlmock.NewResult(1, 1))
 
 	reqBody := `{"ossId":"` + uuid.NewString() + `","ossVersionId":"` + uuid.NewString() + `","usageRole":"RUNTIME_REQUIRED"}`
@@ -322,7 +322,7 @@ func TestUpdateProjectUsage(t *testing.T) {
 
 	pid := uuid.NewString()
 	uid := uuid.NewString()
-	updateQuery := regexp.QuoteMeta("UPDATE project_usages SET oss_version_id = ?, usage_role = ?, direct_dependency = ?, inclusion_note = ?, scope_status = ?, evaluated_at = ?, evaluated_by = ? WHERE id = ?")
+	updateQuery := regexp.QuoteMeta("UPDATE project_usages SET oss_version_id = ?, usage_role = ?, direct_dependency = ?, inclusion_note = ?, scope_status = ?, evaluated_at = ?, evaluated_by = ?, modified = ?, modification_description = ?, supplier_type = ?, fork_origin_url = ? WHERE id = ?")
 	mock.ExpectExec(updateQuery).WillReturnResult(sqlmock.NewResult(1, 1))
 
 	body := `{"usageRole":"DEV_ONLY"}`
