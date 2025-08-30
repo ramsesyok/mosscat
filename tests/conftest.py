@@ -25,7 +25,7 @@ def server():
         pytest.fail("server did not start")
     password = passwd_file.read_text().strip()
     base_url = "http://127.0.0.1:8080"
-    os.environ["BASE_URL"] = base_url
+    os.environ["BASE_URL"] = f"{base_url}/api"
     os.environ["ADMIN_PASSWORD"] = password
     yield base_url, password
     proc.terminate()
@@ -38,7 +38,7 @@ def server():
 @pytest.fixture(scope="session", autouse=True)
 def token(server):
     base_url, password = server
-    res = requests.post(f"{base_url}/auth/login", json={"username": "admin", "password": password})
+    res = requests.post(f"{base_url}/api/auth/login", json={"username": "admin", "password": password})
     res.raise_for_status()
     tok = res.json()["accessToken"]
     os.environ["TOKEN"] = tok
