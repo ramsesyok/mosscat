@@ -149,7 +149,6 @@ stages:
 ---
 
 test_name: "update oss version not found"
-marks: [xfail]
 
 stages:
   - name: patch non-existent version

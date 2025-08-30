@@ -144,7 +144,6 @@ stages:
 ---
 
 test_name: "get oss version not found"
-marks: [xfail]
 
 stages:
   - name: get non-existent version
