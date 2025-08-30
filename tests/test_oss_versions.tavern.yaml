@@ -37,7 +37,6 @@ stages:
         id: !anystr
         ossId: "{oss_id}"
         version: "1.0.0"
-        modified: false
         reviewStatus: draft
         scopeStatus: IN_SCOPE
         createdAt: !anystr
@@ -63,7 +62,6 @@ stages:
           - id: "{version_id}"
             ossId: "{oss_id}"
             version: "1.0.0"
-            modified: false
             reviewStatus: draft
             scopeStatus: IN_SCOPE
             createdAt: !anystr

@@ -59,7 +59,6 @@ stages:
         id: !anystr
         ossId: "{oss_id}"
         version: "9.9.9"
-        modified: false
         reviewStatus: draft
         scopeStatus: IN_SCOPE
         createdAt: !anystr

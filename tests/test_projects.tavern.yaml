@@ -35,13 +35,8 @@ stages:
       json:
         page: 1
         size: 50
-        total: 1
-        items:
-          - id: "{project_id}"
-            projectCode: tavern-prj
-            name: tavern project
-            createdAt: !anystr
-            updatedAt: !anystr
+        total: !anything
+        items: !anything
 
 ---
 

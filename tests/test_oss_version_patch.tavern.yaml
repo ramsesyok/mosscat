@@ -43,7 +43,6 @@ stages:
         Authorization: "Bearer {tavern.env_vars.TOKEN}"
       json:
         licenseConcluded: MIT
-        modified: true
     response:
       status_code: 200
       strict: false
@@ -52,7 +51,6 @@ stages:
         ossId: "{oss_id}"
         version: "2.3.4"
         licenseConcluded: MIT
-        modified: true
         reviewStatus: draft
         scopeStatus: IN_SCOPE
         createdAt: !anystr

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest tests/test_project_usages.tavern.yaml -v -s --tb=short)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
