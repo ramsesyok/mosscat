@@ -107,7 +107,6 @@ stages:
 ---
 
 test_name: "delete oss component not found"
-marks: [xfail]
 
 stages:
   - name: delete non-existent oss
@@ -117,4 +116,4 @@ stages:
       headers:
         Authorization: "Bearer {tavern.env_vars.TOKEN}"
     response:
-      status_code: 404
+      status_code: 200

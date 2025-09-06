@@ -53,7 +53,7 @@ func TestLoginAndAccess(t *testing.T) {
 			AddRow(uid, "admin", nil, nil, hash, pq.StringArray{"ADMIN"}, true, now, now),
 	)
 
-	req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(`{"username":"admin","password":"pass"}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(`{"username":"admin","password":"pass"}`))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
@@ -69,7 +69,7 @@ func TestLoginAndAccess(t *testing.T) {
 		sqlmock.NewRows([]string{"id", "username", "display_name", "email", "password_hash", "roles", "active", "created_at", "updated_at"}).
 			AddRow(uid, "admin", nil, nil, hash, pq.StringArray{"ADMIN"}, true, now, now),
 	)
-	req2 := httptest.NewRequest(http.MethodGet, "/me", nil)
+	req2 := httptest.NewRequest(http.MethodGet, "/api/me", nil)
 	req2.Header.Set("Authorization", "Bearer "+res.AccessToken)
 	rec2 := httptest.NewRecorder()
 	e.ServeHTTP(rec2, req2)
@@ -96,7 +96,7 @@ func TestLogin_InvalidPassword(t *testing.T) {
 			AddRow(uid, "admin", nil, nil, hash, pq.StringArray{"ADMIN"}, true, now, now),
 	)
 
-	req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(`{"username":"admin","password":"wrong"}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(`{"username":"admin","password":"wrong"}`))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
@@ -113,9 +113,9 @@ func TestRolesRequired_Forbidden(t *testing.T) {
 	h := &handler.Handler{UserRepo: repo}
 	e, token := setupAuthEcho(h)
 
-	e.GET("/admin", func(c echo.Context) error { return c.String(200, "ok") }, auth.RolesRequired("ADMIN"))
+	e.GET("/api/admin", func(c echo.Context) error { return c.String(200, "ok") }, auth.RolesRequired("ADMIN"))
 
-	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/admin", nil)
 	// token for admin already generated but we need viewer role token to test deny
 	viewer := &model.User{ID: uuid.NewString(), Username: "view", PasswordHash: "pass", Roles: []string{"VIEWER"}, Active: true}
 	vtoken, _, _ := auth.GenerateToken(viewer)
@@ -141,7 +141,7 @@ func TestExpiredToken(t *testing.T) {
 	expiredUser := &model.User{ID: uuid.NewString(), Username: "a", PasswordHash: "p", Roles: []string{"ADMIN"}, Active: true}
 	token, _, _ := auth.GenerateToken(expiredUser)
 
-	req := httptest.NewRequest(http.MethodGet, "/me", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/me", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
@@ -162,7 +162,7 @@ func TestRouterRolesForbidden(t *testing.T) {
 	viewer := &model.User{ID: uuid.NewString(), Username: "view", PasswordHash: "pass", Roles: []string{"VIEWER"}, Active: true}
 	token, _, _ := auth.GenerateToken(viewer)
 
-	req := httptest.NewRequest(http.MethodGet, "/users", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
