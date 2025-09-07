@@ -59,3 +59,4 @@ admin.initial.password
 .venv
 mosscat.db
 mosscat-test
+__debug_bin.*
