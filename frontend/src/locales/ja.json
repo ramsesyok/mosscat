@@ -110,7 +110,7 @@
     },
     "usage": {
       "modificationInfo": "変更情報",
-      "modified": "変更有無",
+      "modified": "改変",
       "modificationDescription": "変更内容",
       "supplierType": "供給者種別",
       "forkOriginUrl": "フォーク元URL"

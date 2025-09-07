@@ -38,7 +38,6 @@
         <v-divider class="my-4" />
 
         <v-form ref="formRef">
-          <h3 class="mb-3">{{ t('project.usage.modificationInfo') }}</h3>
           <v-switch
             v-model="form.modified"
             :label="t('project.usage.modified')"
